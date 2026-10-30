@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ConfereAntes</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <p class="eyebrow">Análise local · Sem abrir links</p>
+        <h1>ConfereAntes</h1>
+        <p class="lead">Compare o anúncio com a conversa ou cobrança e veja sinais que merecem confirmação antes de pagar.</p>
+      </header>
+
+      <section class="card form-card">
+        <form action="/analisar" method="post">
+          <div class="field-grid">
+            <label>
+              <span>Texto do anúncio original</span>
+              <textarea name="original_text" rows="7" placeholder="Cole aqui preço, condições e identificação do anúncio...">{{ values.get('original_text', '') }}</textarea>
+            </label>
+            <label>
+              <span>Texto da conversa ou cobrança</span>
+              <textarea name="received_text" rows="7" placeholder="Cole a mensagem recebida, sem dados que não sejam necessários...">{{ values.get('received_text', '') }}</textarea>
+            </label>
+          </div>
+
+          <div class="field-grid compact">
+            <label>
+              <span>Link recebido (opcional)</span>
+              <input name="link" type="text" value="{{ values.get('link', '') }}" placeholder="exemplo.com/pagamento">
+              <small>O ConfereAntes analisa o texto do endereço e não abre o link.</small>
+            </label>
+            <label>
+              <span>Chave ou Pix copia e cola (opcional)</span>
+              <input name="pix" type="text" value="{{ values.get('pix', '') }}" placeholder="Cole somente se necessário">
+              <small>O MVP não realiza pagamentos nem consulta dados bancários.</small>
+            </label>
+          </div>
+
+          <button type="submit">Analisar antes de continuar</button>
+        </form>
+      </section>
+
+      {% if result %}
+      <section class="card result result-{{ result.level }}" aria-live="polite">
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow">Resultado local</p>
+            <h2>Nível: {{ result.level|capitalize }}</h2>
+          </div>
+          <div class="score" aria-label="Pontuação de risco">{{ result.score }}<span>/100</span></div>
+        </div>
+        <p class="summary">{{ result.summary }}</p>
+
+        {% if result.findings %}
+        <div class="findings">
+          {% for finding in result.findings %}
+          <article class="finding severity-{{ finding.severity }}">
+            <div class="finding-title">
+              <h3>{{ finding.title }}</h3>
+              <span>+{{ finding.points }}</span>
+            </div>
+            <p>{{ finding.evidence }}</p>
+            <p class="recommendation"><strong>O que fazer:</strong> {{ finding.recommendation }}</p>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty">As regras atuais não encontraram um sinal forte. Confirme mesmo assim a identidade, o valor e o destinatário por um canal oficial.</p>
+        {% endif %}
+      </section>
+      {% endif %}
+
+      <footer>
+        <strong>Importante:</strong> esta análise auxilia a decisão, mas não garante que uma cobrança seja legítima.
+      </footer>
+    </main>
+  </body>
+</html>
+
