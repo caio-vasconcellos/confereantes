@@ -1,21 +1,16 @@
 # ConfereAntes
 
-Aplicativo local para analisar mensagens, links e cobranças Pix **antes do pagamento**. O objetivo é destacar inconsistências e sinais comuns de engenharia social sem abrir links suspeitos e sem enviar dados pessoais para serviços externos.
+Comecei este projeto para ajudar a conferir uma mensagem ou cobrança antes de fazer um Pix. A ideia é comparar o que foi anunciado com o que chegou na conversa e chamar atenção para diferenças de valor, links estranhos e sinais comuns de golpe.
 
-> O ConfereAntes oferece sinais de risco, não um veredito. Nenhuma análise substitui a confirmação pelos canais oficiais da empresa ou pessoa envolvida.
+Ainda é um MVP. Por enquanto, a análise é feita com regras simples e roda no próprio computador. O resultado serve como alerta e não substitui a confirmação com a pessoa ou empresa por um canal oficial.
 
-## Estado atual
+## O que já funciona
 
-Primeiro MVP:
-
-- interface web executada somente no computador local;
-- comparação entre o anúncio original e a conversa/cobrança recebida;
-- análise de urgência, sigilo, pedido de credenciais e acesso remoto;
-- inspeção segura do texto de links, sem abri-los;
-- comparação de valores em reais entre as evidências;
-- resultado com pontuação, nível de atenção e recomendações.
-
-O OCR de capturas de tela será adicionado no próximo marco.
+- comparação do texto do anúncio com a mensagem recebida;
+- identificação de urgência, pedido de sigilo, senha ou acesso remoto;
+- verificação do endereço escrito de um link, sem acessá-lo;
+- comparação de valores em reais;
+- pontuação de atenção acompanhada dos motivos encontrados.
 
 ## Executar localmente
 
@@ -38,16 +33,14 @@ pytest
 
 ## Privacidade
 
-- O servidor escuta apenas em `127.0.0.1` por padrão.
-- O MVP não envia conteúdo para APIs externas.
-- Evidências pessoais não devem ser adicionadas ao repositório.
-- Segredos e configurações locais devem ficar em `.env`, que está ignorado pelo Git.
+- O servidor usa `127.0.0.1` por padrão.
+- O conteúdo analisado não é enviado para uma API externa.
+- Capturas de tela e outros dados pessoais não fazem parte deste repositório.
 
-## Marcos sugeridos
+## Próximos passos
 
-1. Interface e motor inicial de sinais de risco.
-2. OCR local para capturas de tela.
-3. Comparação estruturada de nomes, valores, domínios e destinatários Pix.
-4. Histórico local opcional e criptografado.
-5. Empacotamento para Windows e documentação de demonstração.
+- adicionar leitura local de capturas de tela;
+- melhorar a comparação de nomes, valores e destinatários Pix;
+- criar um histórico local opcional;
+- preparar uma versão fácil de instalar no Windows.
 
