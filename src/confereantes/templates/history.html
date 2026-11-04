@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Histórico local · ConfereAntes</title>
+    <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <script src="{{ url_for('static', path='/app.js') }}" defer></script>
+  </head>
+  <body>
+    <main class="shell compact-shell">
+      <nav class="topbar" aria-label="Navegação principal">
+        <a class="brand" href="/">ConfereAntes</a>
+        <a href="/">Nova análise</a>
+      </nav>
+      <header class="page-header">
+        <p class="eyebrow">Armazenado neste computador</p>
+        <h1>Histórico local</h1>
+        <p class="lead">Somente análises que você escolheu salvar aparecem aqui. O conteúdo é criptografado antes de entrar no banco local.</p>
+      </header>
+
+      {% if request.query_params.get('limpo') %}
+      <section class="notice notice-success"><p>O histórico foi apagado.</p></section>
+      {% endif %}
+
+      {% if entries %}
+      <div class="history-list">
+        {% for entry in entries %}
+        <article class="card history-entry result-{{ entry.level }}">
+          <div class="result-heading">
+            <div>
+              <p class="eyebrow">{{ entry.created_at.astimezone().strftime('%d/%m/%Y às %H:%M') }}</p>
+              <h2>{{ entry.level|capitalize }}</h2>
+            </div>
+            <div class="score small-score">{{ entry.score }}<span>/100</span></div>
+          </div>
+          <p>{{ entry.summary }}</p>
+          {% if entry.original_excerpt %}<p><strong>Anúncio:</strong> {{ entry.original_excerpt }}</p>{% endif %}
+          {% if entry.received_excerpt %}<p><strong>Recebido:</strong> {{ entry.received_excerpt }}</p>{% endif %}
+          <ul class="history-findings">{% for finding in entry.findings %}<li>{{ finding.title }}</li>{% endfor %}</ul>
+        </article>
+        {% endfor %}
+      </div>
+      <form action="/historico/limpar" method="post" class="danger-zone" data-confirm-clear>
+        <p>Apagar remove todas as análises salvas deste computador.</p>
+        <button class="button-danger" type="submit">Apagar histórico</button>
+      </form>
+      {% else %}
+      <section class="card empty-state">
+        <h2>Nenhuma análise salva</h2>
+        <p>Na tela principal, marque a opção de histórico antes de analisar.</p>
+        <a class="button-link" href="/">Fazer uma análise</a>
+      </section>
+      {% endif %}
+    </main>
+  </body>
+</html>

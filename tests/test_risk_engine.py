@@ -52,6 +52,38 @@ class RiskEngineTests(unittest.TestCase):
         self.assertEqual(result.score, 0)
         self.assertEqual(result.findings, [])
 
+    def test_detects_recipient_mismatch(self) -> None:
+        result = analyze(
+            expected_recipient="Loja Horizonte Ltda",
+            displayed_recipient="Carlos da Silva",
+        )
+
+        self.assertEqual(result.level, "atencao")
+        self.assertTrue(any(finding.title == "Destinatário divergente" for finding in result.findings))
+
+    def test_accepts_small_variation_in_recipient_name(self) -> None:
+        result = analyze(
+            expected_recipient="José Comércio LTDA",
+            displayed_recipient="Jose Comercio",
+        )
+
+        self.assertFalse(any(finding.title == "Destinatário divergente" for finding in result.findings))
+
+    def test_flags_malformed_link(self) -> None:
+        result = analyze(link="não é um endereço válido")
+
+        self.assertTrue(any(finding.title == "Link malformado" for finding in result.findings))
+
+    def test_flags_invalid_pix_integrity(self) -> None:
+        result = analyze(pix="0002010102116304FFFF")
+
+        self.assertTrue(
+            any(
+                finding.title in {"Código Pix foi alterado ou está corrompido", "Código Pix inválido ou incompleto"}
+                for finding in result.findings
+            )
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

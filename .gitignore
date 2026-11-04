@@ -15,4 +15,5 @@ build/
 uploads/
 evidencias/
 *.sqlite3
+.test-history/
 

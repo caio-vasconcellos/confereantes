@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import ipaddress
 import re
+import unicodedata
 from collections.abc import Iterable
 from decimal import Decimal, InvalidOperation
+from difflib import SequenceMatcher
 from urllib.parse import urlparse
 
 from .models import AnalysisResult, Finding
+from .pix import PixPayloadError, parse_pix_payload
 
 
 URGENCY_TERMS = (
@@ -71,6 +74,8 @@ def analyze(
     received_text: str = "",
     link: str = "",
     pix: str = "",
+    expected_recipient: str = "",
+    displayed_recipient: str = "",
 ) -> AnalysisResult:
     """Analisa evidências usando regras locais, explicáveis e determinísticas."""
 
@@ -128,16 +133,8 @@ def analyze(
     findings.extend(_inspect_link(link))
     findings.extend(_compare_amounts(original_text, received_text))
 
-    if pix.strip() and not pix.strip().startswith("000201"):
-        findings.append(
-            Finding(
-                severity="atencao",
-                title="Identificador Pix precisa de confirmação",
-                evidence="O conteúdo informado não tem o prefixo comum de um código Pix copia e cola.",
-                recommendation="Confirme no aplicativo do banco o nome e o CPF/CNPJ exibidos antes de autorizar.",
-                points=15,
-            )
-        )
+    findings.extend(_inspect_pix(pix, original_text, received_text, displayed_recipient))
+    findings.extend(_compare_recipients(expected_recipient, displayed_recipient))
 
     score = min(100, sum(item.points for item in findings))
     level = "alto" if score >= 55 else "atencao" if score >= 25 else "baixo"
@@ -174,6 +171,28 @@ def _inspect_link(raw_link: str) -> list[Finding]:
     parsed = urlparse(value if "://" in value else f"http://{value}")
     host = (parsed.hostname or "").lower().rstrip(".")
     findings: list[Finding] = []
+
+    if not host or any(char.isspace() for char in value):
+        return [
+            Finding(
+                severity="atencao",
+                title="Link malformado",
+                evidence="O endereço informado não parece ter um domínio válido.",
+                recommendation="Não tente corrigir nem abrir o endereço. Procure o canal oficial manualmente.",
+                points=20,
+            )
+        ]
+
+    if parsed.username or parsed.password:
+        findings.append(
+            Finding(
+                severity="alto",
+                title="Link tenta esconder o domínio real",
+                evidence="O endereço contém informações antes do domínio, uma técnica usada para confundir a leitura.",
+                recommendation="Não abra o link. Digite manualmente o site oficial.",
+                points=35,
+            )
+        )
 
     if parsed.scheme != "https":
         findings.append(
@@ -226,6 +245,89 @@ def _inspect_link(raw_link: str) -> list[Finding]:
     return findings
 
 
+def _inspect_pix(
+    raw_pix: str,
+    original_text: str,
+    received_text: str,
+    displayed_recipient: str,
+) -> list[Finding]:
+    value = raw_pix.strip()
+    if not value:
+        return []
+
+    if not value.startswith("000201"):
+        return [
+            Finding(
+                severity="atencao",
+                title="Identificador Pix precisa de confirmação",
+                evidence="O conteúdo informado não tem o prefixo comum de um código Pix copia e cola.",
+                recommendation="Confirme no aplicativo do banco o nome e o CPF/CNPJ exibidos antes de autorizar.",
+                points=15,
+            )
+        ]
+
+    try:
+        payload = parse_pix_payload(value)
+    except PixPayloadError as exc:
+        return [
+            Finding(
+                severity="alto",
+                title="Código Pix inválido ou incompleto",
+                evidence=str(exc),
+                recommendation="Não pague usando esse código. Solicite um novo código por um canal confirmado.",
+                points=40,
+            )
+        ]
+
+    findings: list[Finding] = []
+    if not payload.crc_valid:
+        findings.append(
+            Finding(
+                severity="alto",
+                title="Código Pix foi alterado ou está corrompido",
+                evidence="A verificação de integridade CRC do código Pix não confere.",
+                recommendation="Não use esse código. Copie novamente apenas de uma fonte confirmada.",
+                points=45,
+            )
+        )
+
+    if payload.amount is not None:
+        known_amounts = _extract_brl_amounts(f"{original_text} {received_text}")
+        if known_amounts and payload.amount not in known_amounts:
+            findings.append(
+                Finding(
+                    severity="alto",
+                    title="Valor do Pix diverge das mensagens",
+                    evidence=f"O código Pix informa {_format_amounts({payload.amount})}, diferente dos valores encontrados no texto.",
+                    recommendation="Não autorize até confirmar o valor por outro canal.",
+                    points=40,
+                )
+            )
+
+    if displayed_recipient.strip() and payload.merchant_name:
+        findings.extend(_compare_recipients(displayed_recipient, payload.merchant_name, source="código Pix"))
+    return findings
+
+
+def _compare_recipients(expected: str, displayed: str, *, source: str = "aplicativo do banco") -> list[Finding]:
+    left = _normalize_name(expected)
+    right = _normalize_name(displayed)
+    if not left or not right:
+        return []
+    similarity = SequenceMatcher(None, left, right).ratio()
+    if left in right or right in left or similarity >= 0.72:
+        return []
+    return [
+        Finding(
+            severity="alto",
+            title="Destinatário divergente",
+            evidence=f'O nome esperado ("{expected.strip()}") difere do nome exibido no {source} ("{displayed.strip()}").',
+            recommendation="Não pague até confirmar quem receberá o valor.",
+            points=45,
+        )
+    ]
+
+
 def _compare_amounts(original_text: str, received_text: str) -> list[Finding]:
     original = _extract_brl_amounts(original_text)
     received = _extract_brl_amounts(received_text)
@@ -263,4 +365,10 @@ def _contains_any(text: str, terms: Iterable[str]) -> bool:
 
 def _normalize(text: str) -> str:
     return " ".join(text.casefold().split())
+
+
+def _normalize_name(text: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", text.casefold())
+    without_accents = "".join(char for char in decomposed if not unicodedata.combining(char))
+    return " ".join(re.sub(r"[^a-z0-9 ]+", " ", without_accents).split())
 

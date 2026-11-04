@@ -3,55 +3,118 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Confira mensagens, links e cobranças Pix localmente antes de pagar.">
     <title>ConfereAntes</title>
+    <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <script src="{{ url_for('static', path='/app.js') }}" defer></script>
   </head>
   <body>
     <main class="shell">
+      <nav class="topbar" aria-label="Navegação principal">
+        <a class="brand" href="/">ConfereAntes</a>
+        <a href="/historico">Histórico local</a>
+      </nav>
+
       <header class="hero">
         <p class="eyebrow">Análise local · Sem abrir links</p>
-        <h1>ConfereAntes</h1>
-        <p class="lead">Compare o anúncio com a conversa ou cobrança e veja sinais que merecem confirmação antes de pagar.</p>
+        <h1>Confira antes de pagar.</h1>
+        <p class="lead">Compare o anúncio com a conversa ou cobrança e veja, em linguagem clara, o que merece confirmação.</p>
+        <div class="privacy-note">
+          <span class="status-dot {{ 'ready' if ocr_available else 'limited' }}"></span>
+          <span>{{ ocr_status }} Imagens e textos não são enviados para serviços externos.</span>
+        </div>
       </header>
 
+      {% if errors %}
+      <section class="notice notice-error" role="alert">
+        <strong>Não foi possível analisar.</strong>
+        <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+      </section>
+      {% endif %}
+
+      {% if messages or history_saved %}
+      <section class="notice notice-success" role="status">
+        {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+        {% if history_saved %}<p>A análise foi salva de forma criptografada no histórico local.</p>{% endif %}
+      </section>
+      {% endif %}
+
       <section class="card form-card">
-        <form action="/analisar" method="post">
-          <div class="field-grid">
-            <label>
-              <span>Texto do anúncio original</span>
-              <textarea name="original_text" rows="7" placeholder="Cole aqui preço, condições e identificação do anúncio...">{{ values.get('original_text', '') }}</textarea>
-            </label>
-            <label>
-              <span>Texto da conversa ou cobrança</span>
-              <textarea name="received_text" rows="7" placeholder="Cole a mensagem recebida, sem dados que não sejam necessários...">{{ values.get('received_text', '') }}</textarea>
-            </label>
+        <div class="section-heading">
+          <div>
+            <p class="step">1</p>
+            <h2>Adicione as evidências</h2>
+          </div>
+          <button class="button-secondary" id="fill-example" type="button">Usar exemplo fictício</button>
+        </div>
+
+        <form action="/analisar" method="post" enctype="multipart/form-data" id="analysis-form">
+          <div class="evidence-grid">
+            <section class="evidence-panel">
+              <label for="original-image">Captura do anúncio original</label>
+              <input class="file-input" id="original-image" name="original_image" type="file" accept="image/png,image/jpeg,image/webp" data-ocr-target="original-text">
+              <p class="file-status" id="original-image-status">PNG, JPG ou WEBP, até 8 MB.</p>
+              <label for="original-text">Texto do anúncio</label>
+              <textarea id="original-text" name="original_text" rows="8" maxlength="30000" placeholder="Cole o texto ou selecione uma captura para extrair localmente...">{{ values.get('original_text', '') }}</textarea>
+            </section>
+
+            <section class="evidence-panel">
+              <label for="received-image">Captura da conversa ou cobrança</label>
+              <input class="file-input" id="received-image" name="received_image" type="file" accept="image/png,image/jpeg,image/webp" data-ocr-target="received-text">
+              <p class="file-status" id="received-image-status">PNG, JPG ou WEBP, até 8 MB.</p>
+              <label for="received-text">Texto recebido</label>
+              <textarea id="received-text" name="received_text" rows="8" maxlength="30000" placeholder="Cole a mensagem ou selecione uma captura para extrair localmente...">{{ values.get('received_text', '') }}</textarea>
+            </section>
+          </div>
+
+          <div class="section-heading section-spaced">
+            <div>
+              <p class="step">2</p>
+              <h2>Complete o que souber</h2>
+            </div>
+            <p class="optional">Todos os campos abaixo são opcionais.</p>
           </div>
 
           <div class="field-grid compact">
-            <label>
-              <span>Link recebido (opcional)</span>
-              <input name="link" type="text" value="{{ values.get('link', '') }}" placeholder="exemplo.com/pagamento">
-              <small>O ConfereAntes analisa o texto do endereço e não abre o link.</small>
+            <label for="link">
+              <span>Link recebido</span>
+              <input id="link" name="link" type="text" maxlength="2000" value="{{ values.get('link', '') }}" placeholder="exemplo.com/pagamento" inputmode="url">
+              <small>O endereço é analisado como texto e não é aberto.</small>
             </label>
-            <label>
-              <span>Chave ou Pix copia e cola (opcional)</span>
-              <input name="pix" type="text" value="{{ values.get('pix', '') }}" placeholder="Cole somente se necessário">
-              <small>O MVP não realiza pagamentos nem consulta dados bancários.</small>
+            <label for="pix">
+              <span>Pix copia e cola</span>
+              <textarea id="pix" name="pix" rows="3" maxlength="2000" placeholder="Cole o código completo">{{ values.get('pix', '') }}</textarea>
+              <small>A estrutura e a integridade CRC são verificadas localmente.</small>
+            </label>
+            <label for="expected-recipient">
+              <span>Quem deveria receber</span>
+              <input id="expected-recipient" name="expected_recipient" type="text" maxlength="2000" value="{{ values.get('expected_recipient', '') }}" placeholder="Nome informado no anúncio">
+            </label>
+            <label for="displayed-recipient">
+              <span>Nome exibido pelo banco</span>
+              <input id="displayed-recipient" name="displayed_recipient" type="text" maxlength="2000" value="{{ values.get('displayed_recipient', '') }}" placeholder="Nome mostrado antes de confirmar o Pix">
             </label>
           </div>
 
-          <button type="submit">Analisar antes de continuar</button>
+          <div class="form-actions">
+            <label class="check-row" for="save-history">
+              <input id="save-history" name="save_history" type="checkbox" value="1" {% if values.get('save_history') %}checked{% endif %}>
+              <span>Salvar esta análise no histórico local criptografado</span>
+            </label>
+            <button class="button-primary" type="submit">Analisar evidências</button>
+          </div>
         </form>
       </section>
 
       {% if result %}
-      <section class="card result result-{{ result.level }}" aria-live="polite">
+      <section class="card result result-{{ result.level }}" aria-live="polite" id="resultado">
         <div class="result-heading">
           <div>
-            <p class="eyebrow">Resultado local</p>
+            <p class="eyebrow">Resultado das regras locais</p>
             <h2>Nível: {{ result.level|capitalize }}</h2>
           </div>
-          <div class="score" aria-label="Pontuação de risco">{{ result.score }}<span>/100</span></div>
+          <div class="score" aria-label="Pontuação de atenção">{{ result.score }}<span>/100</span></div>
         </div>
         <p class="summary">{{ result.summary }}</p>
 
@@ -69,15 +132,28 @@
           {% endfor %}
         </div>
         {% else %}
-        <p class="empty">As regras atuais não encontraram um sinal forte. Confirme mesmo assim a identidade, o valor e o destinatário por um canal oficial.</p>
+        <p class="empty">As regras atuais não encontraram um sinal forte. Confirme mesmo assim identidade, valor e destinatário por um canal oficial.</p>
         {% endif %}
+
+        <div class="result-actions">
+          <button class="button-secondary" id="print-result" type="button">Imprimir ou salvar em PDF</button>
+          <a class="text-link" href="/">Nova análise</a>
+        </div>
       </section>
       {% endif %}
 
+      <section class="how-it-works">
+        <h2>O que o ConfereAntes faz — e o que não faz</h2>
+        <div class="explain-grid">
+          <article><strong>Compara evidências</strong><p>Procura divergências de valor, destinatário e contexto.</p></article>
+          <article><strong>Explica cada alerta</strong><p>Mostra o sinal encontrado e uma ação segura para confirmar.</p></article>
+          <article><strong>Não dá um veredito</strong><p>Um resultado baixo não prova que uma cobrança é legítima.</p></article>
+        </div>
+      </section>
+
       <footer>
-        <strong>Importante:</strong> esta análise auxilia a decisão, mas não garante que uma cobrança seja legítima.
+        <strong>Importante:</strong> o ConfereAntes não acessa bancos, não abre links e não realiza pagamentos.
       </footer>
     </main>
   </body>
 </html>
-

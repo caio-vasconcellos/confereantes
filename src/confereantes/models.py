@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Literal
 
 
@@ -30,4 +31,16 @@ class AnalysisResult:
         if self.level == "atencao":
             return "Existem pontos que merecem confirmação independente antes de continuar."
         return "Nenhum sinal forte foi encontrado pelas regras atuais, mas ainda é necessário confirmar a origem."
+
+
+@dataclass(frozen=True, slots=True)
+class HistoryEntry:
+    id: int
+    created_at: datetime
+    level: RiskLevel
+    score: int
+    summary: str
+    findings: list[Finding]
+    original_excerpt: str = ""
+    received_excerpt: str = ""
 
