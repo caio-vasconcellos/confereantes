@@ -6,7 +6,7 @@
     <meta name="description" content="Confira mensagens, links e cobranças Pix localmente antes de pagar.">
     <title>ConfereAntes</title>
     <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
-    <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/editorial.css') }}">
     <script src="{{ url_for('static', path='/app.js') }}" defer></script>
   </head>
   <body>
@@ -22,7 +22,7 @@
         <p class="lead">Compare o anúncio com a conversa ou cobrança e veja, em linguagem clara, o que merece confirmação.</p>
         <div class="privacy-note">
           <span class="status-dot {{ 'ready' if ocr_available else 'limited' }}"></span>
-          <span>{{ ocr_status }} Imagens e textos não são enviados para serviços externos.</span>
+          <span>Seus arquivos ficam neste computador. {% if ocr_available %}Leitura de imagens disponível.{% else %}{{ ocr_status }}{% endif %}</span>
         </div>
       </header>
 
@@ -111,7 +111,7 @@
       <section class="card result result-{{ result.level }}" aria-live="polite" id="resultado">
         <div class="result-heading">
           <div>
-            <p class="eyebrow">Resultado das regras locais</p>
+            <p class="eyebrow">Conferência das evidências</p>
             <h2>Nível: {{ result.level|capitalize }}</h2>
           </div>
           <div class="score" aria-label="Pontuação de atenção">{{ result.score }}<span>/100</span></div>
@@ -143,7 +143,7 @@
       {% endif %}
 
       <section class="how-it-works">
-        <h2>O que o ConfereAntes faz — e o que não faz</h2>
+        <h2>Uma segunda leitura, antes de decidir.</h2>
         <div class="explain-grid">
           <article><strong>Compara evidências</strong><p>Procura divergências de valor, destinatário e contexto.</p></article>
           <article><strong>Explica cada alerta</strong><p>Mostra o sinal encontrado e uma ação segura para confirmar.</p></article>
