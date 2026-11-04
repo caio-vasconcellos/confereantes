@@ -26,6 +26,7 @@ ocr = [
 dev = [
   "pytest>=8.3,<10.0",
   "httpx>=0.28,<1.0",
+  "Pillow>=12,<14",
 ]
 
 [project.scripts]
