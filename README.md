@@ -4,6 +4,8 @@ Comecei este projeto para ajudar a conferir uma mensagem ou cobrança antes de f
 
 O ConfereAntes roda no próprio computador. Ele não abre links, não acessa bancos e não envia as evidências para uma API externa. O resultado é um alerta explicável, não uma garantia de que uma cobrança seja legítima ou fraudulenta.
 
+Esta versão entrega o MVP local em Python. O roteiro completo também prevê uma API em C#, leitura de QR Code e explicações com IA generativa local; essas partes ainda não estão implementadas. Veja a [revisão do roteiro](REVISAO.md).
+
 ## O que a versão 1.0 faz
 
 - recebe texto ou capturas do anúncio e da conversa;
@@ -47,7 +49,7 @@ confereantes
 
 ## Privacidade
 
-- Imagens são processadas em memória e não são gravadas pelo aplicativo.
+- O aplicativo não mantém um acervo de imagens. O recebimento do upload pode usar arquivos temporários gerenciados pelo framework; o OCR trabalha com os bytes lidos.
 - O histórico é desativado por padrão.
 - Quando ativado, o histórico fica em `%LOCALAPPDATA%\ConfereAntes`.
 - O conteúdo de cada análise é criptografado antes de ser salvo no SQLite.

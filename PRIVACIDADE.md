@@ -6,7 +6,7 @@ O ConfereAntes foi projetado para funcionar localmente.
 
 O usuário pode fornecer textos, imagens, links escritos, códigos Pix e nomes de destinatários. Esses dados são usados somente para produzir a análise solicitada.
 
-As imagens são lidas em memória para o OCR e descartadas após o processamento. O aplicativo não possui rotina de envio para serviços externos.
+O recebimento de uploads usa o mecanismo do framework, que pode utilizar arquivos temporários no computador conforme o tamanho do arquivo. O OCR lê os bytes em memória e o aplicativo não mantém um acervo das imagens recebidas. Não há rotina de envio das evidências para serviços externos.
 
 ## Histórico opcional
 
