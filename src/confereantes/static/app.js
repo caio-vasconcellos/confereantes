@@ -25,6 +25,7 @@ async function extractImage(input) {
     const result = await response.json();
     if (!response.ok || !result.ok) throw new Error(result.error || "Não foi possível ler a imagem.");
     target.value = result.text;
+    updateEvidenceCount();
     status.textContent = "Texto extraído. Revise o campo antes de analisar.";
     status.className = "file-status success";
   } catch (error) {
@@ -37,6 +38,15 @@ document.querySelectorAll("[data-ocr-target]").forEach((input) => {
   input.addEventListener("change", () => extractImage(input));
 });
 
+function updateEvidenceCount() {
+  const counter = document.getElementById("evidence-count");
+  if (!counter) return;
+  const count = ["original-text", "received-text"].filter((id) => document.getElementById(id).value.trim()).length;
+  counter.textContent = `${String(count).padStart(2, "0")} / 02`;
+}
+document.querySelectorAll("#original-text, #received-text").forEach((field) => field.addEventListener("input", updateEvidenceCount));
+updateEvidenceCount();
+
 const exampleButton = document.getElementById("fill-example");
 if (exampleButton) {
   exampleButton.addEventListener("click", () => {
@@ -45,6 +55,9 @@ if (exampleButton) {
     document.getElementById("link").value = "bit.ly/pagamento-notebook";
     document.getElementById("expected-recipient").value = "Loja Horizonte";
     document.getElementById("displayed-recipient").value = "Carlos da Silva";
+    const paymentDetails = document.querySelector(".payment-details");
+    if (paymentDetails) paymentDetails.open = true;
+    updateEvidenceCount();
     document.getElementById("original-text").focus();
   });
 }
@@ -60,5 +73,6 @@ if (clearForm) {
 }
 
 if (document.getElementById("resultado")) {
-  document.getElementById("resultado").scrollIntoView({ behavior: "smooth", block: "start" });
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.getElementById("resultado").scrollIntoView({ behavior: reducedMotion ? "instant" : "smooth", block: "start" });
 }

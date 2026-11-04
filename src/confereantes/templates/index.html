@@ -6,26 +6,32 @@
     <meta name="description" content="Confira mensagens, links e cobranças Pix localmente antes de pagar.">
     <title>ConfereAntes</title>
     <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
-    <link rel="stylesheet" href="{{ url_for('static', path='/editorial.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', path='/workbench.css') }}">
     <script src="{{ url_for('static', path='/app.js') }}" defer></script>
   </head>
   <body>
+    <a class="skip-link" href="#analysis-form">Ir para a conferência</a>
     <main class="shell">
       <nav class="topbar" aria-label="Navegação principal">
-        <a class="brand" href="/">ConfereAntes</a>
-        <a href="/historico">Histórico local</a>
+        <a class="brand" href="/" aria-label="ConfereAntes, início"><span class="brand-symbol" aria-hidden="true">[≠]</span>confereantes</a>
+        <span class="nav-caption">Uma pausa antes do Pix.</span>
+        <a href="/historico">Arquivo local <span aria-hidden="true">↗</span></a>
       </nav>
 
+      <div class="workbench">
       <header class="hero">
-        <p class="eyebrow">Análise local · Sem abrir links</p>
-        <h1>Confira antes de pagar.</h1>
-        <p class="lead">Compare o anúncio com a conversa ou cobrança e veja, em linguagem clara, o que merece confirmação.</p>
+        <p class="eyebrow">Mesa de checagem / 01</p>
+        <h1 aria-label="Confira antes de pagar.">Confira<br>antes<br>de pagar<span class="title-stop">.</span></h1>
+        <p class="lead">O anúncio diz uma coisa.<br>A cobrança diz outra?<br>Coloque os dois lado a lado.</p>
+        <div class="comparison-mark" aria-hidden="true"><span>A</span><b>≠</b><span>B</span></div>
+        <div class="desk-status"><span>Material na mesa</span><output id="evidence-count" aria-live="polite">00 / 02</output></div>
         <div class="privacy-note">
           <span class="status-dot {{ 'ready' if ocr_available else 'limited' }}"></span>
-          <span>Seus arquivos ficam neste computador. {% if ocr_available %}Leitura de imagens disponível.{% else %}{{ ocr_status }}{% endif %}</span>
+          <span>Processado aqui, no seu computador.<br>{% if ocr_available %}Leitura de imagens disponível.{% else %}{{ ocr_status }}{% endif %}</span>
         </div>
+        <p class="desk-footnote">Na dúvida, confirme por outro canal.<br>Uma pontuação baixa não garante segurança.</p>
       </header>
-
+      <div class="workspace">
       {% if errors %}
       <section class="notice notice-error" role="alert">
         <strong>Não foi possível analisar.</strong>
@@ -43,35 +49,38 @@
       <section class="card form-card">
         <div class="section-heading">
           <div>
-            <p class="step">1</p>
-            <h2>Adicione as evidências</h2>
+            <p class="step">01 / COMPARAR</p>
+            <h2>O que você recebeu?</h2>
           </div>
-          <button class="button-secondary" id="fill-example" type="button">Usar exemplo fictício</button>
+          <button class="button-secondary" id="fill-example" type="button">Testar com exemplo <span aria-hidden="true">↙</span></button>
         </div>
 
         <form action="/analisar" method="post" enctype="multipart/form-data" id="analysis-form">
           <div class="evidence-grid">
             <section class="evidence-panel">
+              <div class="document-heading"><span class="document-id">A</span><div><h3>O combinado</h3><p>Anúncio, oferta ou conversa original.</p></div></div>
               <label for="original-image">Captura do anúncio original</label>
               <input class="file-input" id="original-image" name="original_image" type="file" accept="image/png,image/jpeg,image/webp" data-ocr-target="original-text">
               <p class="file-status" id="original-image-status">PNG, JPG ou WEBP, até 8 MB.</p>
               <label for="original-text">Texto do anúncio</label>
-              <textarea id="original-text" name="original_text" rows="8" maxlength="30000" placeholder="Cole o texto ou selecione uma captura para extrair localmente...">{{ values.get('original_text', '') }}</textarea>
+              <textarea id="original-text" name="original_text" rows="6" maxlength="30000" placeholder="Cole aqui o que foi anunciado...">{{ values.get('original_text', '') }}</textarea>
             </section>
 
             <section class="evidence-panel">
+              <div class="document-heading"><span class="document-id">B</span><div><h3>A cobrança</h3><p>A mensagem que precisa de uma segunda leitura.</p></div></div>
               <label for="received-image">Captura da conversa ou cobrança</label>
               <input class="file-input" id="received-image" name="received_image" type="file" accept="image/png,image/jpeg,image/webp" data-ocr-target="received-text">
               <p class="file-status" id="received-image-status">PNG, JPG ou WEBP, até 8 MB.</p>
               <label for="received-text">Texto recebido</label>
-              <textarea id="received-text" name="received_text" rows="8" maxlength="30000" placeholder="Cole a mensagem ou selecione uma captura para extrair localmente...">{{ values.get('received_text', '') }}</textarea>
+              <textarea id="received-text" name="received_text" rows="6" maxlength="30000" placeholder="Cole aqui a mensagem recebida...">{{ values.get('received_text', '') }}</textarea>
             </section>
           </div>
 
+          <details class="payment-details" {% if values.get('link') or values.get('pix') or values.get('expected_recipient') or values.get('displayed_recipient') %}open{% endif %}>
+          <summary><span class="step">02 / COMPLEMENTAR</span><span>Tem link ou dados do Pix?</span><span class="details-sign" aria-hidden="true">+</span></summary>
           <div class="section-heading section-spaced">
             <div>
-              <p class="step">2</p>
-              <h2>Complete o que souber</h2>
+              <h2>Confira também o pagamento</h2>
             </div>
             <p class="optional">Todos os campos abaixo são opcionais.</p>
           </div>
@@ -96,13 +105,13 @@
               <input id="displayed-recipient" name="displayed_recipient" type="text" maxlength="2000" value="{{ values.get('displayed_recipient', '') }}" placeholder="Nome mostrado antes de confirmar o Pix">
             </label>
           </div>
-
+          </details>
           <div class="form-actions">
             <label class="check-row" for="save-history">
               <input id="save-history" name="save_history" type="checkbox" value="1" {% if values.get('save_history') %}checked{% endif %}>
               <span>Salvar esta análise no histórico local criptografado</span>
             </label>
-            <button class="button-primary" type="submit">Analisar evidências</button>
+            <button class="button-primary" type="submit">Conferir agora <span aria-hidden="true">↗</span></button>
           </div>
         </form>
       </section>
@@ -111,7 +120,7 @@
       <section class="card result result-{{ result.level }}" aria-live="polite" id="resultado">
         <div class="result-heading">
           <div>
-            <p class="eyebrow">Conferência das evidências</p>
+            <p class="eyebrow">03 / LEITURA DA MESA</p>
             <h2>Nível: {{ result.level|capitalize }}</h2>
           </div>
           <div class="score" aria-label="Pontuação de atenção">{{ result.score }}<span>/100</span></div>
@@ -143,16 +152,17 @@
       {% endif %}
 
       <section class="how-it-works">
-        <h2>Uma segunda leitura, antes de decidir.</h2>
+        <h2>Como ler a conferência</h2>
         <div class="explain-grid">
           <article><strong>Compara evidências</strong><p>Procura divergências de valor, destinatário e contexto.</p></article>
           <article><strong>Explica cada alerta</strong><p>Mostra o sinal encontrado e uma ação segura para confirmar.</p></article>
           <article><strong>Não dá um veredito</strong><p>Um resultado baixo não prova que uma cobrança é legítima.</p></article>
         </div>
       </section>
-
+      </div>
+      </div>
       <footer>
-        <strong>Importante:</strong> o ConfereAntes não acessa bancos, não abre links e não realiza pagamentos.
+        <span>CONFEREANTES / Ferramenta de conferência</span><span>Não acessa bancos, não abre links e não realiza pagamentos.</span>
       </footer>
     </main>
   </body>
