@@ -38,6 +38,43 @@ document.querySelectorAll("[data-ocr-target]").forEach((input) => {
   input.addEventListener("change", () => extractImage(input));
 });
 
+const qrInput = document.getElementById("qr-image");
+if (qrInput) qrInput.addEventListener("change", async () => {
+  const file = qrInput.files && qrInput.files[0];
+  const status = document.getElementById("qr-status");
+  if (!file) return;
+  status.className = "file-status";
+  if (file.size > MAX_IMAGE_BYTES) {
+    status.textContent = "A imagem excede o limite de 8 MB.";
+    status.className = "file-status error";
+    qrInput.value = "";
+    return;
+  }
+  status.textContent = "Lendo QR Code localmente…";
+  try {
+    const body = new FormData();
+    body.append("image", file);
+    const response = await fetch("/api/qr", { method: "POST", body });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "Não foi possível ler o QR Code.");
+    const target = document.getElementById(result.kind === "pix" ? "pix" : "link");
+    target.value = result.text;
+    target.focus();
+    status.textContent = "QR Code lido. Revise o conteúdo preenchido antes de conferir.";
+    status.className = "file-status success";
+  } catch (error) {
+    status.textContent = error.message;
+    status.className = "file-status error";
+  }
+});
+
+const analysisForm = document.getElementById("analysis-form");
+if (analysisForm) analysisForm.addEventListener("submit", () => {
+  const button = analysisForm.querySelector('button[type="submit"]');
+  button.disabled = true;
+  button.textContent = "Conferindo…";
+});
+
 function updateEvidenceCount() {
   const counter = document.getElementById("evidence-count");
   if (!counter) return;

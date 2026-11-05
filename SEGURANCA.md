@@ -16,6 +16,11 @@ Ao relatar uma falha, use apenas exemplos fictícios e informe a versão do Pyth
 - links nunca são abertos pelo motor;
 - histórico desativado por padrão e conteúdo criptografado quando salvo;
 - documentação interativa da API desativada na versão local.
+- API C# e processador interno autenticados com token efêmero, gerado pelo iniciador;
+- clientes internos limitados a loopback, com proxy externo desativado;
+- IA opcional recebe somente rótulos de regras e recomendações, sem evidências originais;
+- saída da IA escapada no HTML e sem poder de alterar a pontuação;
+- QR Code decodificado sem navegar no destino; múltiplos códigos são recusados.
 
 ## Escopo
 

@@ -1,5 +1,15 @@
 # Histórico de versões
 
+## 1.1.0 — 2026-11-04
+
+- leitura local de QR Code com preenchimento revisável do Pix ou link;
+- API ASP.NET Core em C# para orquestração e histórico;
+- persistência EF Core/SQLite com payload protegido por ASP.NET Data Protection;
+- comunicação interna autenticada por token efêmero;
+- explicação opcional com Ollama, sem alterar pontuação ou receber evidências originais;
+- modo completo e modo Python independente, com históricos separados;
+- testes do leitor QR, isolamento da IA e API C#.
+
 ## 1.0.0 — 2026-11-04
 
 - fluxo completo de análise de textos, imagens, links e Pix;

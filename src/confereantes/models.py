@@ -23,6 +23,9 @@ class AnalysisResult:
     score: int
     level: RiskLevel
     findings: list[Finding] = field(default_factory=list)
+    explanation: str | None = None
+    explanation_model: str | None = None
+    explanation_error: str | None = None
 
     @property
     def summary(self) -> str:

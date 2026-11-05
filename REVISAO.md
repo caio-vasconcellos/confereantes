@@ -11,17 +11,26 @@ Revisão em 4 de novembro de 2026, comparando a implementação com a proposta d
 | Comparar valores e destinatários | Atendido, com limitações | Regras determinísticas; nomes comparados aproximadamente |
 | Analisar domínio sem abrir links suspeitos | Atendido no MVP | Inspeção textual; sem consulta de reputação |
 | Pix copia e cola | Parcial | Parser TLV e CRC; não verifica titularidade ou validade junto ao banco |
-| Ler QR Code de uma imagem | Pendente | OCR não equivale a decodificação de QR Code |
+| Ler QR Code de uma imagem | Implementado na 1.1 | Decoder ZXing, preenchimento revisável e limites de upload |
 | Identificar sinais de engenharia social | Atendido no MVP | Regras de urgência, sigilo, credenciais e acesso remoto |
 | Relatório explicativo | Atendido com regras | Evidências, recomendações e impressão pelo navegador |
-| IA generativa local para explicações | Pendente | O OCR usa reconhecimento de imagem; as explicações atuais não são geradas por LLM |
-| API em C# e processamento em Python | Parcial | Backend atual em Python/FastAPI; sem API ASP.NET Core |
+| IA generativa local para explicações | Implementado como opção na 1.1 | Cliente Ollama para modelo local; não altera a pontuação e não recebe evidências originais |
+| API em C# e processamento em Python | Implementado no modo completo | API ASP.NET Core orquestra chamadas ao processador Python autenticado |
 | SQLite e histórico local | Atendido no MVP | Salvamento opcional com conteúdo criptografado |
-| EF Core | Pendente | Acesso ao SQLite atual pela biblioteca Python |
+| EF Core | Implementado na 1.1 | API salva e consulta SQLite real com payload criptografado |
 | README, estrutura de repositório e testes | Atendido no MVP | Documentação, scripts Windows e suíte automatizada |
 | Não enviar evidências pessoais para nuvem | Atendido no código revisado | Sem integração externa para processar evidências; servidor local por padrão |
 
-O resultado é um MVP publicável como projeto em desenvolvimento, mas ainda não corresponde a todo o roteiro original de IA generativa e C#.
+As três pendências funcionais identificadas na revisão inicial foram implementadas na versão 1.1. O modo completo usa C#/EF Core; o modo Python continua independente. A IA precisa do Ollama e do modelo instalados, é opcional e pode produzir explicações incorretas. Esses requisitos de instalação e limites fazem parte da entrega, não são garantias de detecção de fraude.
+
+## Validação da versão 1.1
+
+- Suíte Python ampliada para QR Code, rotas internas autenticadas, encaminhamento para C# e isolamento da IA.
+- Teste de integração C# aprovado com SQLite real: token, validação de entrada, salvamento opcional, criptografia, consulta e exclusão.
+- Teste real `scripts/smoke_completo.py --with-ai` aprovado neste computador: QR de imagem fictícia, ciclo Python → C# → Python, histórico EF Core criptografado, leitura e limpeza e geração com Ollama/Qwen local.
+- Modelo e executáveis ficam em `.tools`, ignorado pelo Git. O primeiro carregamento da IA exige mais tempo; a interface informa esse limite e preserva o resultado das regras em caso de falha.
+- 27 testes Python e um teste C# de integração aprovados localmente. O CI inclui também o fluxo real dos serviços sem exigir o modelo de IA.
+- A tentativa de revisão visual da versão 1.1 foi limitada por falha de conexão da prévia no navegador integrado. O formulário e seu resultado foram verificados por HTTP no teste de ponta a ponta; não se afirma nova validação visual de desktop/celular nesta versão.
 
 ## Revisão antes da publicação
 

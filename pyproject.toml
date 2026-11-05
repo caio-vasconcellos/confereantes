@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "confereantes"
-version = "1.0.0"
+version = "1.1.0"
 description = "Analisador local de sinais de risco em mensagens, links e cobranças Pix."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+  "httpx>=0.28,<1.0",
   "cryptography>=46,<51",
   "fastapi>=0.115,<1.0",
   "jinja2>=3.1,<4.0",
@@ -22,11 +23,14 @@ ocr = [
   "onnxruntime>=1.31,<2.0",
   "Pillow>=12,<14",
   "rapidocr>=3.10,<4.0",
+  "zxing-cpp>=3.0,<4.0",
 ]
 dev = [
   "pytest>=8.3,<10.0",
   "httpx>=0.28,<1.0",
   "Pillow>=12,<14",
+  "zxing-cpp>=3.0,<4.0",
+  "qrcode>=8,<9",
 ]
 
 [project.scripts]

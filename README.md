@@ -4,9 +4,9 @@ Comecei este projeto para ajudar a conferir uma mensagem ou cobrança antes de f
 
 O ConfereAntes roda no próprio computador. Ele não abre links, não acessa bancos e não envia as evidências para uma API externa. O resultado é um alerta explicável, não uma garantia de que uma cobrança seja legítima ou fraudulenta.
 
-Esta versão entrega o MVP local em Python. O roteiro completo também prevê uma API em C#, leitura de QR Code e explicações com IA generativa local; essas partes ainda não estão implementadas. Veja a [revisão do roteiro](REVISAO.md).
+Esta versão inclui o processador Python, leitura de QR Code, API C# com EF Core/SQLite e explicações opcionais com IA generativa local. Veja [como executar o modo completo](ARQUITETURA.md) e a [revisão do roteiro](REVISAO.md).
 
-## O que a versão 1.0 faz
+## O que a versão 1.1 faz
 
 - recebe texto ou capturas do anúncio e da conversa;
 - extrai texto das imagens com OCR local e permite revisão;
@@ -17,6 +17,9 @@ Esta versão entrega o MVP local em Python. O roteiro completo também prevê um
 - mostra os motivos da pontuação e uma recomendação para cada alerta;
 - salva análises apenas quando solicitado, usando histórico local criptografado;
 - permite imprimir o resultado ou salvá-lo como PDF pelo navegador.
+- decodifica QR Code de uma imagem sem abrir o conteúdo;
+- registra análises pela API C# no modo completo;
+- pode gerar uma explicação dos alertas com Ollama no próprio computador.
 
 ## Instalação no Windows
 
@@ -37,6 +40,14 @@ O OCR é instalado junto com o projeto e usa modelos locais. A primeira leitura 
 
 O navegador abre em `http://127.0.0.1:8000`. O servidor não é exposto para outros computadores da rede.
 
+Para usar também a API C# e o histórico EF Core, instale o SDK .NET 10 e execute:
+
+```powershell
+.\scripts\iniciar-completo.ps1
+```
+
+A IA é opcional. Inicie o Ollama com `scripts\iniciar-ia.ps1`, instale uma vez o modelo com `ollama pull qwen2.5:0.5b` e marque a opção de explicação no formulário. A análise por regras funciona sem o modelo. Detalhes de configuração estão em [ARQUITETURA.md](ARQUITETURA.md).
+
 ## Desenvolvimento
 
 ```powershell
@@ -53,6 +64,7 @@ confereantes
 - O histórico é desativado por padrão.
 - Quando ativado, o histórico fica em `%LOCALAPPDATA%\ConfereAntes`.
 - O conteúdo de cada análise é criptografado antes de ser salvo no SQLite.
+- No modo completo, a API usa um banco próprio em `%LOCALAPPDATA%\ConfereAntes\api`; o histórico anterior do modo Python não é migrado automaticamente.
 - A chave de criptografia permanece no mesmo perfil do Windows; ela protege o banco contra leitura casual, mas não contra alguém que já controla a conta do usuário.
 - Evidências reais nunca devem ser adicionadas ao Git.
 
@@ -72,6 +84,8 @@ pytest
 ```
 
 Os testes cobrem o motor de risco, parser de Pix, histórico criptografado e rotas web. O GitHub Actions executa a suíte automaticamente em cada envio.
+
+Os testes adicionais cobrem QR Code real, isolamento do cliente de IA e persistência da API C#. Para estes últimos: `dotnet test api/ConfereAntes.Api.Tests`.
 
 ## Estrutura
 

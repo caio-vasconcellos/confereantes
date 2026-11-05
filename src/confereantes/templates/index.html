@@ -77,7 +77,12 @@
           </div>
 
           <details class="payment-details" {% if values.get('link') or values.get('pix') or values.get('expected_recipient') or values.get('displayed_recipient') %}open{% endif %}>
-          <summary><span class="step">02 / COMPLEMENTAR</span><span>Tem link ou dados do Pix?</span><span class="details-sign" aria-hidden="true">+</span></summary>
+          <summary><span class="step">02 / COMPLEMENTAR</span><span>Tem link, QR Code ou dados do Pix?</span><span class="details-sign" aria-hidden="true">+</span></summary>
+          <div class="qr-reader">
+            <label for="qr-image">Ler QR Code de uma imagem</label>
+            <input class="file-input" id="qr-image" type="file" accept="image/png,image/jpeg,image/webp">
+            <p class="file-status" id="qr-status" role="status">O conteúdo será mostrado abaixo para revisão, sem abrir links. PNG, JPG ou WEBP, até 8 MB.</p>
+          </div>
           <div class="section-heading section-spaced">
             <div>
               <h2>Confira também o pagamento</h2>
@@ -107,6 +112,10 @@
           </div>
           </details>
           <div class="form-actions">
+            <label class="check-row" for="use-ai">
+              <input id="use-ai" name="use_ai" type="checkbox" value="1" {% if values.get('use_ai') %}checked{% endif %}>
+              <span>Adicionar explicação com IA local <small>(opcional · requer Ollama; a primeira leitura pode levar até 3 minutos)</small></span>
+            </label>
             <label class="check-row" for="save-history">
               <input id="save-history" name="save_history" type="checkbox" value="1" {% if values.get('save_history') %}checked{% endif %}>
               <span>Salvar esta análise no histórico local criptografado</span>
@@ -126,6 +135,15 @@
           <div class="score" aria-label="Pontuação de atenção">{{ result.score }}<span>/100</span></div>
         </div>
         <p class="summary">{{ result.summary }}</p>
+        {% if result.explanation %}
+        <aside class="ai-explanation">
+          <p class="eyebrow">Explicação gerada localmente · {{ result.explanation_model }}</p>
+          <p>{{ result.explanation }}</p>
+          <small>A IA pode errar. A pontuação e os alertas acima são definidos pelas regras, independentemente desta explicação.</small>
+        </aside>
+        {% elif result.explanation_error %}
+        <aside class="ai-explanation" role="status"><p>{{ result.explanation_error }}</p><small>O resultado das regras permanece disponível.</small></aside>
+        {% endif %}
 
         {% if result.findings %}
         <div class="findings">

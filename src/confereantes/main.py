@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from dataclasses import asdict, replace
+from datetime import datetime
+import secrets
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, Request, UploadFile
+from fastapi import FastAPI, File, Form, Request, UploadFile, HTTPException
+from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
+import httpx
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +19,10 @@ from fastapi.templating import Jinja2Templates
 from .history import HistoryStore
 from .ocr import MAX_IMAGE_BYTES, OCRInputError, OCRUnavailableError, extract_text, ocr_status
 from .risk_engine import analyze
+from .models import AnalysisResult, Finding, HistoryEntry
+from .qr import decode_qr
+from .local_ai import explain, LocalAIUnavailable
+from .services import api_enabled, api_request, service_token
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -49,7 +59,7 @@ class SecurityHeadersMiddleware:
 app = FastAPI(
     title="ConfereAntes",
     description="Análise local e explicável de sinais de risco.",
-    version="1.0.0",
+    version="1.1.0",
     docs_url=None,
     redoc_url=None,
 )
@@ -91,6 +101,7 @@ async def run_analysis(
     expected_recipient: Annotated[str, Form()] = "",
     displayed_recipient: Annotated[str, Form()] = "",
     save_history: Annotated[str, Form()] = "",
+    use_ai: Annotated[str, Form()] = "",
     original_image: Annotated[UploadFile | None, File()] = None,
     received_image: Annotated[UploadFile | None, File()] = None,
 ) -> HTMLResponse:
@@ -102,6 +113,7 @@ async def run_analysis(
         "expected_recipient": expected_recipient.strip(),
         "displayed_recipient": displayed_recipient.strip(),
         "save_history": bool(save_history),
+        "use_ai": bool(use_ai),
     }
     errors = _validate_values(values)
     messages: list[str] = []
@@ -122,7 +134,7 @@ async def run_analysis(
     result = None
     history_saved = False
     if not errors:
-        result = analyze(
+        payload = dict(
             original_text=str(values["original_text"]),
             received_text=str(values["received_text"]),
             link=str(values["link"]),
@@ -130,13 +142,18 @@ async def run_analysis(
             expected_recipient=str(values["expected_recipient"]),
             displayed_recipient=str(values["displayed_recipient"]),
         )
-        if values["save_history"]:
-            get_history_store().save(
-                result,
-                original_text=str(values["original_text"]),
-                received_text=str(values["received_text"]),
-            )
-            history_saved = True
+        if api_enabled():
+            try:
+                data = await api_request("POST", "/analises", {**payload, "save_history": bool(save_history), "explain": bool(use_ai)})
+                result = _result_from_dict(data)
+                history_saved = bool(save_history)
+            except (httpx.HTTPError, RuntimeError):
+                errors.append("A API C# local está indisponível. Reinicie pelo modo completo.")
+        else:
+            result = await run_in_threadpool(_process, payload, bool(use_ai))
+            if values["save_history"]:
+                get_history_store().save(result, original_text=payload["original_text"], received_text=payload["received_text"])
+                history_saved = True
 
     return templates.TemplateResponse(
         request=request,
@@ -164,16 +181,30 @@ async def run_ocr(image: Annotated[UploadFile, File()]) -> JSONResponse:
 
 @app.get("/historico", response_class=HTMLResponse)
 async def history(request: Request) -> HTMLResponse:
+    if api_enabled():
+        try:
+            data = await api_request("GET", "/historico")
+            entries = [HistoryEntry(**{**item, "created_at": datetime.fromisoformat(item["created_at"]), "findings": [Finding(**f) for f in item["findings"]]}) for item in data]
+        except (httpx.HTTPError, RuntimeError) as exc:
+            raise HTTPException(503, "API C# indisponível. O histórico não foi alterado.") from exc
+    else:
+        entries = get_history_store().list()
     return templates.TemplateResponse(
         request=request,
         name="history.html",
-        context={"entries": get_history_store().list()},
+        context={"entries": entries},
     )
 
 
 @app.post("/historico/limpar")
 async def clear_history() -> RedirectResponse:
-    get_history_store().clear()
+    if api_enabled():
+        try:
+            await api_request("DELETE", "/historico")
+        except (httpx.HTTPError, RuntimeError) as exc:
+            raise HTTPException(503, "API C# indisponível. O histórico não foi alterado.") from exc
+    else:
+        get_history_store().clear()
     return RedirectResponse(url="/historico?limpo=1", status_code=303)
 
 
@@ -198,9 +229,70 @@ def _validate_values(values: dict[str, str | bool]) -> list[str]:
 async def _extract_upload(upload: UploadFile) -> tuple[str, str]:
     try:
         data = await upload.read(MAX_IMAGE_BYTES + 1)
-        result = extract_text(data, content_type=upload.content_type or "")
+        result = await run_in_threadpool(extract_text, data, content_type=upload.content_type or "")
     except (OCRInputError, OCRUnavailableError) as exc:
         return "", str(exc)
     finally:
         await upload.close()
     return result.text, "Texto extraído localmente da imagem. Revise antes de confiar."
+
+
+class AnalysisInput(BaseModel):
+    original_text: str = Field(default="", max_length=MAX_TEXT_LENGTH)
+    received_text: str = Field(default="", max_length=MAX_TEXT_LENGTH)
+    link: str = Field(default="", max_length=MAX_SHORT_LENGTH)
+    pix: str = Field(default="", max_length=MAX_SHORT_LENGTH)
+    expected_recipient: str = Field(default="", max_length=MAX_SHORT_LENGTH)
+    displayed_recipient: str = Field(default="", max_length=MAX_SHORT_LENGTH)
+    explain: bool = False
+
+
+def _process(payload: dict, use_ai: bool) -> AnalysisResult:
+    result = analyze(**payload)
+    if use_ai:
+        try:
+            text, model = explain(result)
+            result = replace(result, explanation=text, explanation_model=model)
+        except LocalAIUnavailable as exc:
+            result = replace(result, explanation_error=str(exc))
+    return result
+
+
+def _result_from_dict(data: dict) -> AnalysisResult:
+    return AnalysisResult(
+        score=data["score"], level=data["level"], findings=[Finding(**item) for item in data["findings"]],
+        explanation=data.get("explanation"), explanation_model=data.get("explanation_model"), explanation_error=data.get("explanation_error"),
+    )
+
+
+@app.post("/api/analisar")
+async def process_for_api(request: Request, payload: AnalysisInput):
+    token = service_token()
+    if not token or not secrets.compare_digest(request.headers.get("X-ConfereAntes-Token", ""), token):
+        raise HTTPException(401, "Acesso interno não autorizado.")
+    data = payload.model_dump(exclude={"explain"})
+    if not any(data[name].strip() for name in ("original_text", "received_text", "link", "pix")):
+        raise HTTPException(422, "Informe pelo menos uma evidência.")
+    result = await run_in_threadpool(_process, data, payload.explain)
+    return {**asdict(result), "summary": result.summary}
+
+
+@app.post("/api/qr")
+async def read_qr(image: Annotated[UploadFile, File()]):
+    try:
+        data = await image.read(MAX_IMAGE_BYTES + 1)
+        codes = await run_in_threadpool(decode_qr, data, content_type=image.content_type or "")
+        if not codes:
+            raise OCRInputError("Nenhum QR Code legível foi encontrado.")
+        if len(codes) != 1:
+            raise OCRInputError("A imagem contém vários QR Codes. Recorte apenas o que deseja conferir.")
+        text = codes[0]
+        if len(text) > MAX_SHORT_LENGTH:
+            raise OCRInputError("O conteúdo do QR Code excede 2.000 caracteres.")
+        return {"ok": True, "text": text, "kind": "pix" if text.startswith("000201") else "link"}
+    except ImportError:
+        return JSONResponse({"ok": False, "error": 'Instale o suporte QR com pip install -e ".[ocr]".'}, status_code=503)
+    except OCRInputError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=422)
+    finally:
+        await image.close()

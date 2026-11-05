@@ -1,5 +1,8 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
+import os
+import io
+import qrcode
 
 import httpx
 
@@ -51,6 +54,30 @@ class WebTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["text"], "Oferta por R$ 100,00")
+
+    async def test_internal_processor_requires_service_token(self) -> None:
+        with patch.dict(os.environ, {"CONFEREANTES_SERVICE_TOKEN": "test-token"}):
+            denied = await self.client.post("/api/analisar", json={"received_text": "Envie senha agora"})
+            allowed = await self.client.post("/api/analisar", json={"received_text": "Envie senha agora"}, headers={"X-ConfereAntes-Token": "test-token"})
+        self.assertEqual(denied.status_code, 401)
+        self.assertEqual(allowed.status_code, 200)
+        self.assertIn(allowed.json()["level"], {"baixo", "atencao", "alto"})
+
+    async def test_reads_qr_to_reviewable_content(self) -> None:
+        output = io.BytesIO()
+        qrcode.make("000201-EXEMPLO-TESTE").save(output, format="PNG")
+        response = await self.client.post("/api/qr", files={"image": ("teste.png", output.getvalue(), "image/png")})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["kind"], "pix")
+        self.assertEqual(response.json()["text"], "000201-EXEMPLO-TESTE")
+
+    async def test_complete_mode_routes_to_csharp_api(self) -> None:
+        response_data = {"score": 60, "level": "alto", "findings": [], "summary": "Confirme."}
+        with patch.dict(os.environ, {"CONFEREANTES_USE_API": "1"}), patch("confereantes.main.api_request", new_callable=AsyncMock, return_value=response_data) as gateway:
+            response = await self.client.post("/analisar", data={"received_text": "Pix agora", "save_history": "1"})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(gateway.call_args.args[2]["save_history"])
+        self.assertIn("Nível: Alto", response.text)
 
 
 if __name__ == "__main__":

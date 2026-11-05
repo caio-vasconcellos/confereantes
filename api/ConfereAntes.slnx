@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ConfereAntes.Api/ConfereAntes.Api.csproj" />
+  <Project Path="ConfereAntes.Api.Tests/ConfereAntes.Api.Tests.csproj" />
+</Solution>

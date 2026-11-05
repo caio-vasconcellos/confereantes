@@ -67,6 +67,9 @@ textarea::placeholder, input::placeholder { color: #72736b; opacity: 1; }
 .file-input::file-selector-button { font: inherit; padding: 7px; margin-right: 6px; border: 0; border-radius: 0; background: var(--desk); cursor: pointer; }
 .file-status { color: var(--muted); font-size: 10px; min-height: 15px; margin: 7px 0 16px; }
 .file-status.error { color: #a62714; }.file-status.success { color: #315d35; }
+.qr-reader { margin: 8px 0 24px; max-width: 480px; }
+.ai-explanation { padding: 18px; margin: 24px 0; border: 1px dashed var(--line); font-size: 13px; }
+.ai-explanation .eyebrow { font-size: 10px; }
 .payment-details { margin-top: 26px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
 .payment-details summary { display: flex; align-items: center; gap: 16px; list-style: none; cursor: pointer; padding: 18px 0; font-size: 13px; font-weight: bold; }
 .payment-details summary::-webkit-details-marker { display: none; }
