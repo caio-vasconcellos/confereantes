@@ -1,5 +1,7 @@
 # Privacidade
 
+[English](docs/en/PRIVACY.md) · [Português](PRIVACIDADE.md)
+
 O ConfereAntes foi projetado para funcionar localmente.
 
 ## Dados processados

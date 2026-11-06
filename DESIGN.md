@@ -1,5 +1,7 @@
 # Mesa de checagem
 
+[English](docs/en/DESIGN.md) · [Português](DESIGN.md)
+
 A interface parte de uma mesa com dois documentos: o combinado (A) e a cobrança (B). O símbolo [≠] representa o trabalho de comparar, não uma conclusão sobre a cobrança.
 
 O painel laranja acompanha o formulário e mostra quantas evidências foram inseridas. O restante da superfície fica reservado à leitura e ao resultado. Os dados de pagamento são complementares e ficam em uma seção expansível.

@@ -21,6 +21,9 @@ button, .button-link { cursor: pointer; }
 .skip-link { position: fixed; top: -100px; left: 16px; z-index: 20; padding: 12px; background: white; }
 .skip-link:focus { top: 16px; }
 .shell { max-width: 1600px; margin: auto; padding: 0 32px; }
+.language-switch { max-width: 1600px; margin: 0 auto; padding: 10px 32px 0; display: flex; justify-content: flex-end; gap: 10px; font: 12px/1.5 Arial, sans-serif; }
+.language-switch a[aria-current] { font-weight: bold; text-decoration: none; }
+@media print { .language-switch { display: none; } }
 .topbar { min-height: 100px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--ink); }
 .brand { display: flex; align-items: center; gap: 12px; font-size: 30px; letter-spacing: -1.8px; font-weight: 900; text-decoration: none; }
 .brand-symbol { font-family: 'Courier New', monospace; font-size: 35px; letter-spacing: -7px; padding-right: 7px; }

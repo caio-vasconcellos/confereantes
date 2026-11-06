@@ -1,27 +1,34 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="{{ 'en' if language == 'en' else 'pt-BR' }}">
   <head>
     <meta charset="utf-8">
+    <meta name="ui-strings" content="{{ ui_strings|tojson|forceescape }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Histórico local · ConfereAntes</title>
+    <title>{{ t("Histórico local · ConfereAntes") }}</title>
     <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', path='/workbench.css') }}">
     <script src="{{ url_for('static', path='/app.js') }}" defer></script>
   </head>
   <body>
+
+      <nav class="language-switch" aria-label="{{ 'Language' if language == 'en' else 'Idioma' }}">
+        <a href="{{ language_path }}?lang=pt" lang="pt-BR" {% if language == 'pt' %}aria-current="true"{% endif %}>Português</a>
+        <span aria-hidden="true">/</span>
+        <a href="{{ language_path }}?lang=en" lang="en" {% if language == 'en' %}aria-current="true"{% endif %}>English</a>
+      </nav>
     <main class="shell compact-shell">
-      <nav class="topbar" aria-label="Navegação principal">
+      <nav class="topbar" aria-label="{{ t("Navegação principal") }}">
         <a class="brand" href="/"><span class="brand-symbol" aria-hidden="true">[≠]</span>confereantes</a>
-        <a href="/">Nova análise</a>
+        <a href="/">{{ t("Nova análise") }}</a>
       </nav>
       <header class="page-header">
-        <p class="eyebrow">Armazenado neste computador</p>
-        <h1>Histórico local</h1>
-        <p class="lead">Somente análises que você escolheu salvar aparecem aqui. O conteúdo é criptografado antes de entrar no banco local.</p>
+        <p class="eyebrow">{{ t("Armazenado neste computador") }}</p>
+        <h1>{{ t("Histórico local") }}</h1>
+        <p class="lead">{{ t("Somente análises que você escolheu salvar aparecem aqui. O conteúdo é criptografado antes de entrar no banco local.") }}</p>
       </header>
 
       {% if request.query_params.get('limpo') %}
-      <section class="notice notice-success"><p>O histórico foi apagado.</p></section>
+      <section class="notice notice-success"><p>{{ t("O histórico foi apagado.") }}</p></section>
       {% endif %}
 
       {% if entries %}
@@ -30,28 +37,29 @@
         <article class="card history-entry result-{{ entry.level }}">
           <div class="result-heading">
             <div>
-              <p class="eyebrow">{{ entry.created_at.astimezone().strftime('%d/%m/%Y às %H:%M') }}</p>
-              <h2>{{ entry.level|capitalize }}</h2>
+              <p class="eyebrow">{{ format_date(entry.created_at) }}</p>
+              <h2>{{ level_label(entry.level) }}</h2>
             </div>
             <div class="score small-score">{{ entry.score }}<span>/100</span></div>
           </div>
-          <p>{{ entry.summary }}</p>
-          {% if entry.original_excerpt %}<p><strong>Anúncio:</strong> {{ entry.original_excerpt }}</p>{% endif %}
-          {% if entry.received_excerpt %}<p><strong>Recebido:</strong> {{ entry.received_excerpt }}</p>{% endif %}
-          <ul class="history-findings">{% for finding in entry.findings %}<li>{{ finding.title }}</li>{% endfor %}</ul>
+          <p>{{ t(entry.summary) }}</p>
+          {% if entry.original_excerpt %}<p><strong>{{ t("Anúncio:") }}</strong> {{ entry.original_excerpt }}</p>{% endif %}
+          {% if entry.received_excerpt %}<p><strong>{{ t("Recebido:") }}</strong> {{ entry.received_excerpt }}</p>{% endif %}
+          <ul class="history-findings">{% for finding in entry.findings %}<li>{{ t(finding.title) }}</li>{% endfor %}</ul>
         </article>
         {% endfor %}
       </div>
       <form action="/historico/limpar" method="post" class="danger-zone" data-confirm-clear>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <p>Apagar remove todas as análises salvas deste computador.</p>
-        <button class="button-danger" type="submit">Apagar histórico</button>
+          <input type="hidden" name="language" value="{{ language }}">
+        <p>{{ t("Apagar remove todas as análises salvas deste computador.") }}</p>
+        <button class="button-danger" type="submit">{{ t("Apagar histórico") }}</button>
       </form>
       {% else %}
       <section class="card empty-state">
-        <h2>Nenhuma análise salva</h2>
-        <p>Na tela principal, marque a opção de histórico antes de analisar.</p>
-        <a class="button-link" href="/">Fazer uma análise</a>
+        <h2>{{ t("Nenhuma análise salva") }}</h2>
+        <p>{{ t("Na tela principal, marque a opção de histórico antes de analisar.") }}</p>
+        <a class="button-link" href="/">{{ t("Fazer uma análise") }}</a>
       </section>
       {% endif %}
     </main>

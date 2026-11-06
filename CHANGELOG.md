@@ -1,5 +1,15 @@
 # Histórico de versões
 
+[English](docs/en/CHANGELOG.md) · [Português](CHANGELOG.md)
+
+## 1.3.0 — 2026-11-06
+
+- interface em português e inglês, com seletor de idioma;
+- relatórios, histórico, mensagens de erro e explicações locais em inglês;
+- detecção de termos de engenharia social em inglês;
+- README, documentação e comandos de instalação em inglês;
+- revisão de redação, com descrições diretas das funções e dos limites.
+
 ## 1.2.0 — 2026-11-06
 
 - entrega final do escopo local de portfólio, com relatório de aceitação e demonstração;

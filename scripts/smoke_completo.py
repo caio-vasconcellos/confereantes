@@ -22,6 +22,7 @@ import qrcode
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--with-ai", action="store_true")
+    parser.add_argument("--lang", choices=("pt", "en"), default="pt")
     args = parser.parse_args()
     root = Path(__file__).resolve().parent.parent
     portable = root / ".tools" / "dotnet" / ("dotnet.exe" if os.name == "nt" else "dotnet")
@@ -54,7 +55,7 @@ def main():
             headers = {"X-ConfereAntes-Token": env["CONFEREANTES_SERVICE_TOKEN"]}
             api = "http://127.0.0.1:5080"
             ui = "http://127.0.0.1:8000"
-            home = client.get(ui + "/")
+            home = client.get(ui + "/?lang=" + args.lang)
             csrf = re.search(r'name="csrf-token" content="([^"]+)"', home.text).group(1)
             browser_headers = {"X-ConfereAntes-CSRF": csrf}
             assert client.get(api + "/historico").status_code == 401
@@ -65,7 +66,7 @@ def main():
             response = client.post(ui + "/api/qr", files={"image": ("teste.png", output.getvalue(), "image/png")}, headers=browser_headers)
             assert response.status_code == 200, response.text
             assert response.json()["text"] == "https://exemplo.invalid/cobranca"
-            payload = {"original_text": "Produto de R$ 100,00", "received_text": "Faça Pix de R$ 200,00 agora e envie a senha."}
+            payload = {"original_text": "Produto de R$ 100,00", "received_text": "Faça Pix de R$ 200,00 agora e envie a senha.", "language": args.lang}
             direct = client.post(api + "/analises", json=payload, headers=headers)
             assert direct.status_code == 200, direct.text
             assert direct.json()["level"] == "alto"
@@ -73,9 +74,9 @@ def main():
             assert client.get(api + "/historico", headers=headers).json() == []
             response = client.post(ui + "/analisar", data={**payload, "save_history": "1", "use_ai": "1" if args.with_ai else ""}, headers=browser_headers)
             assert response.status_code == 200, response.text
-            assert "Nível: Alto" in response.text
+            assert ("Level: High" if args.lang == "en" else "Nível: Alto") in response.text
             if args.with_ai:
-                assert "Explicação gerada localmente" in response.text
+                assert ("Locally generated explanation" if args.lang == "en" else "Explicação gerada localmente") in response.text
                 assert "IA local indisponível" not in response.text
             history = client.get(api + "/historico", headers=headers).json()
             assert len(history) == 1

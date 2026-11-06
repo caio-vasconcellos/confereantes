@@ -1,4 +1,4 @@
-"""ConfereAntes: análise local de sinais de risco."""
+"""ConfereAntes: local checks for payment warning signs."""
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 

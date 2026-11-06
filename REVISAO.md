@@ -1,5 +1,7 @@
 # Revisão do projeto
 
+[English](docs/en/REVIEW.md) · [Português](REVISAO.md)
+
 Revisão em 4 de novembro de 2026, comparando a implementação com a proposta do ConfereAntes e o roteiro de aprendizagem de 12 semanas.
 
 ## Atendimento ao roteiro

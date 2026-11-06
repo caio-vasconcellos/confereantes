@@ -1,5 +1,8 @@
 "use strict";
 
+const uiStrings = JSON.parse(document.querySelector('meta[name="ui-strings"]')?.content || '{}');
+function message(text) { return uiStrings[text] || text; }
+
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
@@ -11,13 +14,13 @@ async function extractImage(input) {
   const initialText = target.value;
 
   if (file.size > MAX_IMAGE_BYTES) {
-    status.textContent = "A imagem excede o limite de 8 MB.";
+    status.textContent = message("A imagem excede o limite de 8 MB.");
     status.className = "file-status error";
     input.value = "";
     return;
   }
 
-  status.textContent = "Extraindo texto localmente…";
+  status.textContent = message("Extraindo texto localmente…");
   status.className = "file-status loading";
   const body = new FormData();
   body.append("image", file);
@@ -26,19 +29,19 @@ async function extractImage(input) {
     const response = await fetch("/api/ocr", { method: "POST", body, headers: { 'X-ConfereAntes-CSRF': csrfToken } });
     const result = await response.json();
     if (input.files[0] !== file) return;
-    if (!response.ok || !result.ok) throw new Error(result.error || "Não foi possível ler a imagem.");
+    if (!response.ok || !result.ok) throw new Error(result.error || message("Não foi possível ler a imagem."));
     if (target.value !== initialText) {
-      status.textContent = "A leitura terminou, mas seu texto editado foi preservado. Selecione a imagem novamente para extrair.";
+      status.textContent = message("A leitura terminou, mas seu texto editado foi preservado. Selecione a imagem novamente para extrair.");
       status.className = "file-status";
       return;
     }
     target.value = result.text;
     updateEvidenceCount();
-    status.textContent = "Texto extraído. Revise o campo antes de analisar.";
+    status.textContent = message("Texto extraído. Revise o campo antes de analisar.");
     status.className = "file-status success";
   } catch (error) {
     if (input.files[0] !== file) return;
-    status.textContent = error.message || "Não foi possível ler a imagem.";
+    status.textContent = error.message || message("Não foi possível ler a imagem.");
     status.className = "file-status error";
   }
 }
@@ -55,27 +58,27 @@ if (qrInput) qrInput.addEventListener("change", async () => {
   const initialValues = { pix: document.getElementById("pix").value, link: document.getElementById("link").value };
   status.className = "file-status";
   if (file.size > MAX_IMAGE_BYTES) {
-    status.textContent = "A imagem excede o limite de 8 MB.";
+    status.textContent = message("A imagem excede o limite de 8 MB.");
     status.className = "file-status error";
     qrInput.value = "";
     return;
   }
-  status.textContent = "Lendo QR Code localmente…";
+  status.textContent = message("Lendo QR Code localmente…");
   try {
     const body = new FormData();
     body.append("image", file);
     const response = await fetch("/api/qr", { method: "POST", body, headers: { 'X-ConfereAntes-CSRF': csrfToken } });
     const result = await response.json();
     if (qrInput.files[0] !== file) return;
-    if (!response.ok) throw new Error(result.error || "Não foi possível ler o QR Code.");
+    if (!response.ok) throw new Error(result.error || message("Não foi possível ler o QR Code."));
     const target = document.getElementById(result.kind === "pix" ? "pix" : "link");
     if (target.value !== initialValues[target.id]) {
-      status.textContent = "QR Code lido, mas seu campo editado foi preservado. Selecione a imagem novamente para extrair.";
+      status.textContent = message("QR Code lido, mas seu campo editado foi preservado. Selecione a imagem novamente para extrair.");
       return;
     }
     target.value = result.text;
     target.focus();
-    status.textContent = "QR Code lido. Revise o conteúdo preenchido antes de conferir.";
+    status.textContent = message("QR Code lido. Revise o conteúdo preenchido antes de conferir.");
     status.className = "file-status success";
   } catch (error) {
     if (qrInput.files[0] !== file) return;
@@ -88,7 +91,7 @@ const analysisForm = document.getElementById("analysis-form");
 if (analysisForm) analysisForm.addEventListener("submit", () => {
   const button = analysisForm.querySelector('button[type="submit"]');
   button.disabled = true;
-  button.textContent = "Conferindo…";
+  button.textContent = message("Conferindo…");
 });
 
 function updateEvidenceCount() {
@@ -103,11 +106,11 @@ updateEvidenceCount();
 const exampleButton = document.getElementById("fill-example");
 if (exampleButton) {
   exampleButton.addEventListener("click", () => {
-    document.getElementById("original-text").value = "Notebook anunciado por R$ 1.850,00. Pagamento na retirada para Loja Horizonte.";
-    document.getElementById("received-text").value = "Faça um Pix de R$ 2.150,00 agora para garantir. Não conte para ninguém e envie o código de verificação.";
+    document.getElementById("original-text").value = message("Notebook anunciado por R$ 1.850,00. Pagamento na retirada para Loja Horizonte.");
+    document.getElementById("received-text").value = message("Faça um Pix de R$ 2.150,00 agora para garantir. Não conte para ninguém e envie o código de verificação.");
     document.getElementById("link").value = "bit.ly/pagamento-notebook";
-    document.getElementById("expected-recipient").value = "Loja Horizonte";
-    document.getElementById("displayed-recipient").value = "Carlos da Silva";
+    document.getElementById("expected-recipient").value = message("Loja Horizonte");
+    document.getElementById("displayed-recipient").value = message("Carlos da Silva");
     const paymentDetails = document.querySelector(".payment-details");
     if (paymentDetails) paymentDetails.open = true;
     updateEvidenceCount();
@@ -121,7 +124,7 @@ if (printButton) printButton.addEventListener("click", () => window.print());
 const clearForm = document.querySelector("[data-confirm-clear]");
 if (clearForm) {
   clearForm.addEventListener("submit", (event) => {
-    if (!window.confirm("Apagar todo o histórico local? Esta ação não pode ser desfeita.")) event.preventDefault();
+    if (!window.confirm(message("Apagar todo o histórico local? Esta ação não pode ser desfeita."))) event.preventDefault();
   });
 }
 

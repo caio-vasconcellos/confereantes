@@ -5,7 +5,8 @@ from dataclasses import asdict, replace
 from datetime import datetime
 import secrets
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
+import os
 
 from fastapi import FastAPI, File, Form, Request, UploadFile, HTTPException
 from pydantic import BaseModel, Field
@@ -23,6 +24,7 @@ from .models import AnalysisResult, Finding, HistoryEntry
 from .qr import decode_qr
 from .local_ai import explain, LocalAIUnavailable
 from .services import api_enabled, api_request, service_token
+from .i18n import locale, translate as t, level_label, EN
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -36,6 +38,13 @@ class SecurityHeadersMiddleware:
         self.app = app
 
     async def __call__(self, scope, receive, send) -> None:
+        request = Request(scope) if scope["type"] == "http" else None
+        requested = request.query_params.get("lang") if request else None
+        preferred = (request.cookies.get("lang") or request.headers.get("accept-language", "").split(",")[0]) if request else "pt"
+        fallback = os.environ.get("CONFEREANTES_LANG", "pt")
+        language = requested if requested in {"pt", "en"} else ("en" if preferred.lower().startswith("en") else "pt" if preferred.lower().startswith("pt") else fallback)
+        language = language if language in {"pt", "en"} else "pt"
+        language_token = locale.set(language)
         async def send_with_headers(message) -> None:
             if message["type"] == "http.response.start":
                 headers = list(message.get("headers", []))
@@ -52,21 +61,32 @@ class SecurityHeadersMiddleware:
                     ]
                 )
                 message["headers"] = headers
+                headers.append((b"content-language", locale.get().encode("ascii")))
+                if requested in {"pt", "en"}:
+                    headers.append((b"set-cookie", f"lang={requested}; Path=/; SameSite=Strict; HttpOnly".encode("ascii")))
             await send(message)
 
-        await self.app(scope, receive, send_with_headers)
+        try:
+            await self.app(scope, receive, send_with_headers)
+        finally:
+            locale.reset(language_token)
 
 app = FastAPI(
     title="ConfereAntes",
     description="Análise local e explicável de sinais de risco.",
-    version="1.2.0",
+    version="1.3.0",
     docs_url=None,
     redoc_url=None,
 )
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 app.add_middleware(SecurityHeadersMiddleware)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-templates = Jinja2Templates(directory=BASE_DIR / "templates")
+def language_context(request: Request) -> dict:
+    return {"language": locale.get(), "ui_strings": EN if locale.get() == "en" else {}, "language_path": "/historico" if request.url.path.startswith("/historico") else "/"}
+
+
+templates = Jinja2Templates(directory=BASE_DIR / "templates", context_processors=[language_context])
+templates.env.globals.update(t=t, level_label=level_label, format_date=lambda value: value.astimezone().strftime("%Y-%m-%d %H:%M" if locale.get() == "en" else "%d/%m/%Y às %H:%M"))
 CSRF_TOKEN = secrets.token_urlsafe(32)
 templates.env.globals["csrf_token"] = CSRF_TOKEN
 
@@ -75,6 +95,11 @@ def check_browser_token(request: Request, form_token: str = "") -> None:
     supplied = request.headers.get("X-ConfereAntes-CSRF", "") or form_token
     if not secrets.compare_digest(supplied.encode("utf-8"), CSRF_TOKEN.encode("utf-8")):
         raise HTTPException(403, "Reabra a página antes de enviar. Token do formulário inválido.")
+
+
+@app.exception_handler(HTTPException)
+async def localized_error(request: Request, exc: HTTPException):
+    return JSONResponse({"detail": t(exc.detail) if isinstance(exc.detail, str) else exc.detail}, status_code=exc.status_code, headers=exc.headers)
 
 
 @lru_cache(maxsize=1)
@@ -111,10 +136,13 @@ async def run_analysis(
     save_history: Annotated[str, Form()] = "",
     use_ai: Annotated[str, Form()] = "",
     csrf_token: Annotated[str, Form()] = "",
+    language: Annotated[Literal["pt", "en"] | None, Form()] = None,
     original_image: Annotated[UploadFile | None, File()] = None,
     received_image: Annotated[UploadFile | None, File()] = None,
 ) -> HTMLResponse:
     check_browser_token(request, csrf_token)
+    if language:
+        locale.set(language)
     values: dict[str, str | bool] = {
         "original_text": original_text.strip(),
         "received_text": received_text.strip(),
@@ -157,7 +185,7 @@ async def run_analysis(
         )
         if api_enabled():
             try:
-                data = await api_request("POST", "/analises", {**payload, "save_history": bool(save_history), "explain": bool(use_ai)})
+                data = await api_request("POST", "/analises", {**payload, "save_history": bool(save_history), "explain": bool(use_ai), "language": locale.get()})
                 result = _result_from_dict(data)
                 history_saved = bool(save_history)
             except (httpx.HTTPError, RuntimeError):
@@ -189,8 +217,8 @@ async def run_ocr(request: Request, image: Annotated[UploadFile, File()]) -> JSO
     check_browser_token(request)
     text, message = await _extract_upload(image)
     if not text:
-        return JSONResponse({"ok": False, "error": message}, status_code=422)
-    return JSONResponse({"ok": True, "text": text, "message": message})
+        return JSONResponse({"ok": False, "error": t(message)}, status_code=422)
+    return JSONResponse({"ok": True, "text": text, "message": t(message)})
 
 
 @app.get("/historico", response_class=HTMLResponse)
@@ -220,12 +248,12 @@ async def clear_history(request: Request, csrf_token: Annotated[str, Form()] = "
             raise HTTPException(503, "API C# indisponível. O histórico não foi alterado.") from exc
     else:
         get_history_store().clear()
-    return RedirectResponse(url="/historico?limpo=1", status_code=303)
+    return RedirectResponse(url=f"/historico?limpo=1&lang={locale.get()}", status_code=303)
 
 
 @app.get("/saude")
 async def health() -> dict[str, str | bool]:
-    return {"status": "ok", "ocr_available": OCR_AVAILABLE, "ocr_status": OCR_STATUS}
+    return {"status": "ok", "ocr_available": OCR_AVAILABLE, "ocr_status": t(OCR_STATUS)}
 
 
 def _validate_values(values: dict[str, str | bool]) -> list[str]:
@@ -260,6 +288,7 @@ class AnalysisInput(BaseModel):
     expected_recipient: str = Field(default="", max_length=MAX_SHORT_LENGTH)
     displayed_recipient: str = Field(default="", max_length=MAX_SHORT_LENGTH)
     explain: bool = False
+    language: Literal["pt", "en"] = "pt"
 
 
 def _process(payload: dict, use_ai: bool) -> AnalysisResult:
@@ -285,7 +314,8 @@ async def process_for_api(request: Request, payload: AnalysisInput):
     token = service_token()
     if not token or not secrets.compare_digest(request.headers.get("X-ConfereAntes-Token", "").encode("utf-8"), token.encode("utf-8")):
         raise HTTPException(401, "Acesso interno não autorizado.")
-    data = payload.model_dump(exclude={"explain"})
+    locale.set(payload.language)
+    data = payload.model_dump(exclude={"explain", "language"})
     if not any(data[name].strip() for name in ("original_text", "received_text", "link", "pix")):
         raise HTTPException(422, "Informe pelo menos uma evidência.")
     result = await run_in_threadpool(_process, data, payload.explain)
@@ -307,8 +337,8 @@ async def read_qr(request: Request, image: Annotated[UploadFile, File()]):
             raise OCRInputError("O conteúdo do QR Code excede 2.000 caracteres.")
         return {"ok": True, "text": text, "kind": "pix" if text.startswith("000201") else "link"}
     except ImportError:
-        return JSONResponse({"ok": False, "error": 'Instale o suporte QR com pip install -e ".[ocr]".'}, status_code=503)
+        return JSONResponse({"ok": False, "error": t('Instale o suporte QR com pip install -e ".[ocr]".')}, status_code=503)
     except OCRInputError as exc:
-        return JSONResponse({"ok": False, "error": str(exc)}, status_code=422)
+        return JSONResponse({"ok": False, "error": t(str(exc))}, status_code=422)
     finally:
         await image.close()

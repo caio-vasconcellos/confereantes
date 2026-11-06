@@ -1,5 +1,7 @@
 # Demonstração do ConfereAntes
 
+[English](docs/en/DEMO.md) · [Português](DEMONSTRACAO.md)
+
 Use somente dados fictícios. Não faça pagamentos durante a demonstração.
 
 ## Abrir

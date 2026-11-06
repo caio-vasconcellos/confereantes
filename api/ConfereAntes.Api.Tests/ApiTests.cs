@@ -34,6 +34,10 @@ public class ApiTests {
         Assert.Empty((await client.GetFromJsonAsync<JsonElement[]>("/historico"))!);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/analises", new { received_text = new string('x', 30001) })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/analises", new { })).StatusCode);
+        var englishError = await client.PostAsJsonAsync("/analises", new { language = "en" });
+        Assert.Contains("Provide at least one", await englishError.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync("/analises", new { received_text = "English forwarding test", language = "en" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/analises", new { received_text = "Test", language = "xx" })).StatusCode);
     }
 }
 
@@ -49,10 +53,13 @@ public class FakeProcessorFactory : IHttpClientFactory {
     public HttpClient CreateClient(string name) => new(new FakeProcessor()) { BaseAddress = new Uri("http://127.0.0.1:8000") };
 }
 public class FakeProcessor : HttpMessageHandler {
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
         Assert.True(request.Headers.Contains("X-ConfereAntes-Token"));
-        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+        var input = await request.Content!.ReadFromJsonAsync<JsonElement>(cancellationToken);
+        if (input.GetProperty("received_text").GetString() == "English forwarding test")
+            Assert.Equal("en", input.GetProperty("language").GetString());
+        return new HttpResponseMessage(HttpStatusCode.OK) {
             Content = JsonContent.Create(new { score = 40, level = "atencao", summary = "Confirme por outro canal.", findings = Array.Empty<object>() })
-        });
+        };
     }
 }

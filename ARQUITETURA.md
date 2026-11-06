@@ -1,5 +1,7 @@
 # Executar o projeto completo
 
+[English](docs/en/ARCHITECTURE.md) · [Português](ARQUITETURA.md)
+
 ## Componentes
 
 ```mermaid

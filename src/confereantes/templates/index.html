@@ -1,128 +1,136 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="{{ 'en' if language == 'en' else 'pt-BR' }}">
   <head>
     <meta charset="utf-8">
+    <meta name="ui-strings" content="{{ ui_strings|tojson|forceescape }}">
     <meta name="csrf-token" content="{{ csrf_token }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="Confira mensagens, links e cobranças Pix localmente antes de pagar.">
+    <meta name="description" content="{{ t("Confira mensagens, links e cobranças Pix localmente antes de pagar.") }}">
     <title>ConfereAntes</title>
     <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
     <link rel="stylesheet" href="{{ url_for('static', path='/workbench.css') }}">
     <script src="{{ url_for('static', path='/app.js') }}" defer></script>
   </head>
   <body>
-    <a class="skip-link" href="#analysis-form">Ir para a conferência</a>
+    <a class="skip-link" href="#analysis-form">{{ t("Ir para a conferência") }}</a>
+
+      <nav class="language-switch" aria-label="{{ 'Language' if language == 'en' else 'Idioma' }}">
+        <a href="{{ language_path }}?lang=pt" lang="pt-BR" {% if language == 'pt' %}aria-current="true"{% endif %}>Português</a>
+        <span aria-hidden="true">/</span>
+        <a href="{{ language_path }}?lang=en" lang="en" {% if language == 'en' %}aria-current="true"{% endif %}>English</a>
+      </nav>
     <main class="shell">
-      <nav class="topbar" aria-label="Navegação principal">
-        <a class="brand" href="/" aria-label="ConfereAntes, início"><span class="brand-symbol" aria-hidden="true">[≠]</span>confereantes</a>
-        <span class="nav-caption">Uma pausa antes do Pix.</span>
-        <a href="/historico">Arquivo local <span aria-hidden="true">↗</span></a>
+      <nav class="topbar" aria-label="{{ t("Navegação principal") }}">
+        <a class="brand" href="/" aria-label="{{ t("ConfereAntes, início") }}"><span class="brand-symbol" aria-hidden="true">[≠]</span>confereantes</a>
+        <span class="nav-caption">{{ t("Uma pausa antes do Pix.") }}</span>
+        <a href="/historico">{{ t("Arquivo local") }} <span aria-hidden="true">↗</span></a>
       </nav>
 
       <div class="workbench">
       <header class="hero">
-        <p class="eyebrow">Mesa de checagem / 01</p>
-        <h1 aria-label="Confira antes de pagar.">Confira<br>antes<br>de pagar<span class="title-stop">.</span></h1>
-        <p class="lead">O anúncio diz uma coisa.<br>A cobrança diz outra?<br>Coloque os dois lado a lado.</p>
+        <p class="eyebrow">{{ t("Mesa de checagem / 01") }}</p>
+        <h1 aria-label="{{ t("Confira antes de pagar.") }}">{{ t("Confira") }}<br>{{ t("antes") }}<br>{{ t("de pagar") }}<span class="title-stop">.</span></h1>
+        <p class="lead">{{ t("O anúncio diz uma coisa.") }}<br>{{ t("A cobrança diz outra?") }}<br>{{ t("Coloque os dois lado a lado.") }}</p>
         <div class="comparison-mark" aria-hidden="true"><span>A</span><b>≠</b><span>B</span></div>
-        <div class="desk-status"><span>Material na mesa</span><output id="evidence-count" aria-live="polite">00 / 02</output></div>
+        <div class="desk-status"><span>{{ t("Material na mesa") }}</span><output id="evidence-count" aria-live="polite">00 / 02</output></div>
         <div class="privacy-note">
           <span class="status-dot {{ 'ready' if ocr_available else 'limited' }}"></span>
-          <span>Processado aqui, no seu computador.<br>{% if ocr_available %}Leitura de imagens disponível.{% else %}{{ ocr_status }}{% endif %}</span>
+          <span>{{ t("Processado aqui, no seu computador.") }}<br>{% if ocr_available %}{{ t("Leitura de imagens disponível.") }}{% else %}{{ ocr_status }}{% endif %}</span>
         </div>
-        <p class="desk-footnote">Na dúvida, confirme por outro canal.<br>Uma pontuação baixa não garante segurança.</p>
+        <p class="desk-footnote">{{ t("Na dúvida, confirme por outro canal.") }}<br>{{ t("Uma pontuação baixa não garante segurança.") }}</p>
       </header>
       <div class="workspace">
       {% if errors %}
       <section class="notice notice-error" role="alert">
-        <strong>Não foi possível analisar.</strong>
-        <ul>{% for error in errors %}<li>{{ error }}</li>{% endfor %}</ul>
+        <strong>{{ t("Não foi possível analisar.") }}</strong>
+        <ul>{% for error in errors %}<li>{{ t(error) }}</li>{% endfor %}</ul>
       </section>
       {% endif %}
 
       {% if messages or history_saved %}
       <section class="notice notice-success" role="status">
-        {% for message in messages %}<p>{{ message }}</p>{% endfor %}
-        {% if history_saved %}<p>A análise foi salva de forma criptografada no histórico local.</p>{% endif %}
+        {% for message in messages %}<p>{{ t(message) }}</p>{% endfor %}
+        {% if history_saved %}<p>{{ t("A análise foi salva de forma criptografada no histórico local.") }}</p>{% endif %}
       </section>
       {% endif %}
 
       <section class="card form-card">
         <div class="section-heading">
           <div>
-            <p class="step">01 / COMPARAR</p>
-            <h2>O que você recebeu?</h2>
+            <p class="step">{{ t("01 / COMPARAR") }}</p>
+            <h2>{{ t("O que você recebeu?") }}</h2>
           </div>
-          <button class="button-secondary" id="fill-example" type="button">Testar com exemplo <span aria-hidden="true">↙</span></button>
+          <button class="button-secondary" id="fill-example" type="button">{{ t("Testar com exemplo") }} <span aria-hidden="true">↙</span></button>
         </div>
 
         <form action="/analisar" method="post" enctype="multipart/form-data" id="analysis-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="language" value="{{ language }}">
           <div class="evidence-grid">
             <section class="evidence-panel">
-              <div class="document-heading"><span class="document-id">A</span><div><h3>O combinado</h3><p>Anúncio, oferta ou conversa original.</p></div></div>
-              <label for="original-image">Captura do anúncio original</label>
+              <div class="document-heading"><span class="document-id">A</span><div><h3>{{ t("O combinado") }}</h3><p>{{ t("Anúncio, oferta ou conversa original.") }}</p></div></div>
+              <label for="original-image">{{ t("Captura do anúncio original") }}</label>
               <input class="file-input" id="original-image" name="original_image" type="file" accept="image/png,image/jpeg,image/webp" data-ocr-target="original-text">
-              <p class="file-status" id="original-image-status">PNG, JPG ou WEBP, até 8 MB.</p>
-              <label for="original-text">Texto do anúncio</label>
-              <textarea id="original-text" name="original_text" rows="6" maxlength="30000" placeholder="Cole aqui o que foi anunciado...">{{ values.get('original_text', '') }}</textarea>
+              <p class="file-status" id="original-image-status">{{ t("PNG, JPG ou WEBP, até 8 MB.") }}</p>
+              <label for="original-text">{{ t("Texto do anúncio") }}</label>
+              <textarea id="original-text" name="original_text" rows="6" maxlength="30000" placeholder="{{ t("Cole aqui o que foi anunciado...") }}">{{ values.get('original_text', '') }}</textarea>
             </section>
 
             <section class="evidence-panel">
-              <div class="document-heading"><span class="document-id">B</span><div><h3>A cobrança</h3><p>A mensagem que precisa de uma segunda leitura.</p></div></div>
-              <label for="received-image">Captura da conversa ou cobrança</label>
+              <div class="document-heading"><span class="document-id">B</span><div><h3>{{ t("A cobrança") }}</h3><p>{{ t("A mensagem que precisa de uma segunda leitura.") }}</p></div></div>
+              <label for="received-image">{{ t("Captura da conversa ou cobrança") }}</label>
               <input class="file-input" id="received-image" name="received_image" type="file" accept="image/png,image/jpeg,image/webp" data-ocr-target="received-text">
-              <p class="file-status" id="received-image-status">PNG, JPG ou WEBP, até 8 MB.</p>
-              <label for="received-text">Texto recebido</label>
-              <textarea id="received-text" name="received_text" rows="6" maxlength="30000" placeholder="Cole aqui a mensagem recebida...">{{ values.get('received_text', '') }}</textarea>
+              <p class="file-status" id="received-image-status">{{ t("PNG, JPG ou WEBP, até 8 MB.") }}</p>
+              <label for="received-text">{{ t("Texto recebido") }}</label>
+              <textarea id="received-text" name="received_text" rows="6" maxlength="30000" placeholder="{{ t("Cole aqui a mensagem recebida...") }}">{{ values.get('received_text', '') }}</textarea>
             </section>
           </div>
 
           <details class="payment-details" {% if values.get('link') or values.get('pix') or values.get('expected_recipient') or values.get('displayed_recipient') %}open{% endif %}>
-          <summary><span class="step">02 / COMPLEMENTAR</span><span>Tem link, QR Code ou dados do Pix?</span><span class="details-sign" aria-hidden="true">+</span></summary>
+          <summary><span class="step">{{ t("02 / COMPLEMENTAR") }}</span><span>{{ t("Tem link, QR Code ou dados do Pix?") }}</span><span class="details-sign" aria-hidden="true">+</span></summary>
           <div class="qr-reader">
-            <label for="qr-image">Ler QR Code de uma imagem</label>
+            <label for="qr-image">{{ t("Ler QR Code de uma imagem") }}</label>
             <input class="file-input" id="qr-image" type="file" accept="image/png,image/jpeg,image/webp">
-            <p class="file-status" id="qr-status" role="status">O conteúdo será mostrado abaixo para revisão, sem abrir links. PNG, JPG ou WEBP, até 8 MB.</p>
+            <p class="file-status" id="qr-status" role="status">{{ t("O conteúdo será mostrado abaixo para revisão, sem abrir links. PNG, JPG ou WEBP, até 8 MB.") }}</p>
           </div>
           <div class="section-heading section-spaced">
             <div>
-              <h2>Confira também o pagamento</h2>
+              <h2>{{ t("Confira também o pagamento") }}</h2>
             </div>
-            <p class="optional">Todos os campos abaixo são opcionais.</p>
+            <p class="optional">{{ t("Todos os campos abaixo são opcionais.") }}</p>
           </div>
 
           <div class="field-grid compact">
             <label for="link">
-              <span>Link recebido</span>
-              <input id="link" name="link" type="text" maxlength="2000" value="{{ values.get('link', '') }}" placeholder="exemplo.com/pagamento" inputmode="url">
-              <small>O endereço é analisado como texto e não é aberto.</small>
+              <span>{{ t("Link recebido") }}</span>
+              <input id="link" name="link" type="text" maxlength="2000" value="{{ values.get('link', '') }}" placeholder="{{ t("exemplo.com/pagamento") }}" inputmode="url">
+              <small>{{ t("O endereço é analisado como texto e não é aberto.") }}</small>
             </label>
             <label for="pix">
-              <span>Pix copia e cola</span>
-              <textarea id="pix" name="pix" rows="3" maxlength="2000" placeholder="Cole o código completo">{{ values.get('pix', '') }}</textarea>
-              <small>A estrutura e a integridade CRC são verificadas localmente.</small>
+              <span>{{ t("Pix copia e cola") }}</span>
+              <textarea id="pix" name="pix" rows="3" maxlength="2000" placeholder="{{ t("Cole o código completo") }}">{{ values.get('pix', '') }}</textarea>
+              <small>{{ t("A estrutura e a integridade CRC são verificadas localmente.") }}</small>
             </label>
             <label for="expected-recipient">
-              <span>Quem deveria receber</span>
-              <input id="expected-recipient" name="expected_recipient" type="text" maxlength="2000" value="{{ values.get('expected_recipient', '') }}" placeholder="Nome informado no anúncio">
+              <span>{{ t("Quem deveria receber") }}</span>
+              <input id="expected-recipient" name="expected_recipient" type="text" maxlength="2000" value="{{ values.get('expected_recipient', '') }}" placeholder="{{ t("Nome informado no anúncio") }}">
             </label>
             <label for="displayed-recipient">
-              <span>Nome exibido pelo banco</span>
-              <input id="displayed-recipient" name="displayed_recipient" type="text" maxlength="2000" value="{{ values.get('displayed_recipient', '') }}" placeholder="Nome mostrado antes de confirmar o Pix">
+              <span>{{ t("Nome exibido pelo banco") }}</span>
+              <input id="displayed-recipient" name="displayed_recipient" type="text" maxlength="2000" value="{{ values.get('displayed_recipient', '') }}" placeholder="{{ t("Nome mostrado antes de confirmar o Pix") }}">
             </label>
           </div>
           </details>
           <div class="form-actions">
             <label class="check-row" for="use-ai">
               <input id="use-ai" name="use_ai" type="checkbox" value="1" {% if values.get('use_ai') %}checked{% endif %}>
-              <span>Adicionar explicação com IA local <small>(opcional · requer Ollama; a primeira leitura pode levar até 3 minutos)</small></span>
+              <span>{{ t("Adicionar explicação com IA local") }} <small>{{ t("(opcional · requer Ollama; a primeira leitura pode levar até 3 minutos)") }}</small></span>
             </label>
             <label class="check-row" for="save-history">
               <input id="save-history" name="save_history" type="checkbox" value="1" {% if values.get('save_history') %}checked{% endif %}>
-              <span>Salvar esta análise no histórico local criptografado</span>
+              <span>{{ t("Salvar esta análise no histórico local criptografado") }}</span>
             </label>
-            <button class="button-primary" type="submit">Conferir agora <span aria-hidden="true">↗</span></button>
+            <button class="button-primary" type="submit">{{ t("Conferir agora") }} <span aria-hidden="true">↗</span></button>
           </div>
         </form>
       </section>
@@ -131,20 +139,20 @@
       <section class="card result result-{{ result.level }}" aria-live="polite" id="resultado">
         <div class="result-heading">
           <div>
-            <p class="eyebrow">03 / LEITURA DA MESA</p>
-            <h2>Nível: {{ result.level|capitalize }}</h2>
+            <p class="eyebrow">{{ t("03 / LEITURA DA MESA") }}</p>
+            <h2>{{ t("Nível:") }} {{ level_label(result.level) }}</h2>
           </div>
-          <div class="score" aria-label="Pontuação de atenção">{{ result.score }}<span>/100</span></div>
+          <div class="score" aria-label="{{ t("Pontuação de atenção") }}">{{ result.score }}<span>/100</span></div>
         </div>
-        <p class="summary">{{ result.summary }}</p>
+        <p class="summary">{{ t(result.summary) }}</p>
         {% if result.explanation %}
         <aside class="ai-explanation">
-          <p class="eyebrow">Explicação gerada localmente · {{ result.explanation_model }}</p>
+          <p class="eyebrow">{{ t("Explicação gerada localmente") }} · {{ result.explanation_model }}</p>
           <p>{{ result.explanation }}</p>
-          <small>A IA pode errar. A pontuação e os alertas acima são definidos pelas regras, independentemente desta explicação.</small>
+          <small>{{ t("A IA pode errar. A pontuação e os alertas acima são definidos pelas regras, independentemente desta explicação.") }}</small>
         </aside>
         {% elif result.explanation_error %}
-        <aside class="ai-explanation" role="status"><p>{{ result.explanation_error }}</p><small>O resultado das regras permanece disponível.</small></aside>
+        <aside class="ai-explanation" role="status"><p>{{ t(result.explanation_error) }}</p><small>{{ t("O resultado das regras permanece disponível.") }}</small></aside>
         {% endif %}
 
         {% if result.findings %}
@@ -152,37 +160,37 @@
           {% for finding in result.findings %}
           <article class="finding severity-{{ finding.severity }}">
             <div class="finding-title">
-              <h3>{{ finding.title }}</h3>
+              <h3>{{ t(finding.title) }}</h3>
               <span>+{{ finding.points }}</span>
             </div>
-            <p>{{ finding.evidence }}</p>
-            <p class="recommendation"><strong>O que fazer:</strong> {{ finding.recommendation }}</p>
+            <p>{{ t(finding.evidence) }}</p>
+            <p class="recommendation"><strong>{{ t("O que fazer:") }}</strong> {{ t(finding.recommendation) }}</p>
           </article>
           {% endfor %}
         </div>
         {% else %}
-        <p class="empty">As regras atuais não encontraram um sinal forte. Confirme mesmo assim identidade, valor e destinatário por um canal oficial.</p>
+        <p class="empty">{{ t("As regras atuais não encontraram um sinal forte. Confirme mesmo assim identidade, valor e destinatário por um canal oficial.") }}</p>
         {% endif %}
 
         <div class="result-actions">
-          <button class="button-secondary" id="print-result" type="button">Imprimir ou salvar em PDF</button>
-          <a class="text-link" href="/">Nova análise</a>
+          <button class="button-secondary" id="print-result" type="button">{{ t("Imprimir ou salvar em PDF") }}</button>
+          <a class="text-link" href="/">{{ t("Nova análise") }}</a>
         </div>
       </section>
       {% endif %}
 
       <section class="how-it-works">
-        <h2>Como ler a conferência</h2>
+        <h2>{{ t("Como ler a conferência") }}</h2>
         <div class="explain-grid">
-          <article><strong>Compara evidências</strong><p>Procura divergências de valor, destinatário e contexto.</p></article>
-          <article><strong>Explica cada alerta</strong><p>Mostra o sinal encontrado e uma ação segura para confirmar.</p></article>
-          <article><strong>Não dá um veredito</strong><p>Um resultado baixo não prova que uma cobrança é legítima.</p></article>
+          <article><strong>{{ t("Compara evidências") }}</strong><p>{{ t("Procura divergências de valor, destinatário e contexto.") }}</p></article>
+          <article><strong>{{ t("Explica cada alerta") }}</strong><p>{{ t("Mostra o sinal encontrado e uma ação segura para confirmar.") }}</p></article>
+          <article><strong>{{ t("Não dá um veredito") }}</strong><p>{{ t("Um resultado baixo não prova que uma cobrança é legítima.") }}</p></article>
         </div>
       </section>
       </div>
       </div>
       <footer>
-        <span>CONFEREANTES / Ferramenta de conferência</span><span>Não acessa bancos, não abre links e não realiza pagamentos.</span>
+        <span>{{ t("CONFEREANTES / Ferramenta de conferência") }}</span><span>{{ t("Não acessa bancos, não abre links e não realiza pagamentos.") }}</span>
       </footer>
     </main>
   </body>

@@ -1,5 +1,7 @@
 # Segurança
 
+[English](docs/en/SECURITY.md) · [Português](SEGURANCA.md)
+
 ## Relatar um problema
 
 Não publique evidências pessoais, chaves Pix reais, senhas, tokens ou códigos de verificação em uma issue.

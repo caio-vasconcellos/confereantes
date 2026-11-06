@@ -23,7 +23,7 @@ builder.Services.AddHttpClient("processor", client => {
 var app = builder.Build();
 var token = Environment.GetEnvironmentVariable("CONFEREANTES_SERVICE_TOKEN");
 if (string.IsNullOrWhiteSpace(token) || token.Length < 32)
-    throw new InvalidOperationException("Defina um token interno de pelo menos 32 caracteres pelo iniciador completo.");
+    throw new InvalidOperationException("Use the full launcher to set an internal token of at least 32 characters.");
 using (var scope = app.Services.CreateScope())
     scope.ServiceProvider.GetRequiredService<HistoryDb>().Database.EnsureCreated();
 
@@ -45,18 +45,19 @@ app.Use(async (context, next) => {
 });
 app.MapGet("/saude", () => Results.Ok(new { status = "ok", storage = "EF Core / SQLite" }));
 app.MapPost("/analises", async (AnalysisRequest input, IHttpClientFactory factory, HistoryDb db, IDataProtectionProvider protection, CancellationToken cancellation) => {
+    string Message(string portuguese, string english) => input.Language == "en" ? english : portuguese;
     var validation = new List<ValidationResult>();
     if (!Validator.TryValidateObject(input, new ValidationContext(input), validation, true))
-        return Results.BadRequest(new { error = "Campos excedem os limites permitidos." });
+        return Results.BadRequest(new { error = Message("Campos inválidos ou acima dos limites permitidos.", "Invalid fields or field limits exceeded.") });
     if (string.IsNullOrWhiteSpace(input.OriginalText) && string.IsNullOrWhiteSpace(input.ReceivedText)
         && string.IsNullOrWhiteSpace(input.Link) && string.IsNullOrWhiteSpace(input.Pix))
-        return Results.BadRequest(new { error = "Informe pelo menos uma evidência." });
+        return Results.BadRequest(new { error = Message("Informe pelo menos uma evidência.", "Provide at least one piece of evidence.") });
     try {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/analisar");
         request.Headers.Add("X-ConfereAntes-Token", token);
         request.Content = JsonContent.Create(input, options: JsonSettings.Options);
         using var response = await factory.CreateClient("processor").SendAsync(request, cancellation);
-        if (!response.IsSuccessStatusCode) return Results.Problem("O processador local rejeitou a análise.", statusCode: 502);
+        if (!response.IsSuccessStatusCode) return Results.Problem(Message("O processador local rejeitou a análise.", "The local processor rejected the analysis."), statusCode: 502);
         var result = await response.Content.ReadFromJsonAsync<JsonElement>(JsonSettings.Options, cancellation);
         if (input.SaveHistory) {
             var payload = new {
@@ -75,7 +76,7 @@ app.MapPost("/analises", async (AnalysisRequest input, IHttpClientFactory factor
         }
         return Results.Json(result);
     } catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException) {
-        return Results.Problem("Processador Python indisponível. Inicie o modo completo.", statusCode: 503);
+        return Results.Problem(Message("Processador Python indisponível. Inicie o modo completo.", "The Python processor is unavailable. Start full mode."), statusCode: 503);
     }
 });
 app.MapGet("/historico", async (HistoryDb db, IDataProtectionProvider protection) => {
@@ -111,7 +112,8 @@ public record AnalysisRequest(
     [property: Required(AllowEmptyStrings = true), MaxLength(2000)] string ExpectedRecipient = "",
     [property: Required(AllowEmptyStrings = true), MaxLength(2000)] string DisplayedRecipient = "",
     bool SaveHistory = false,
-    bool Explain = false);
+    bool Explain = false,
+    [property: Required, RegularExpression("^(pt|en)$")] string Language = "pt");
 
 public sealed class StoredAnalysis {
     public int Id { get; set; }

@@ -13,6 +13,7 @@ from .pix import PixPayloadError, parse_pix_payload
 
 
 URGENCY_TERMS = (
+    "now", "immediately", "last chance", "today only", "account blocked", "will be blocked",
     "agora",
     "imediatamente",
     "última chance",
@@ -25,6 +26,7 @@ URGENCY_TERMS = (
     "so hoje",
 )
 SECRECY_TERMS = (
+    "do not tell", "don't tell", "keep it secret", "delete the conversation",
     "não conte",
     "nao conte",
     "mantenha em segredo",
@@ -33,6 +35,7 @@ SECRECY_TERMS = (
     "apague a conversa",
 )
 CREDENTIAL_TERMS = (
+    "send your password", "share your password", "verification code", "send the code", "access token",
     "envie sua senha",
     "envie a senha",
     "informe o token",
@@ -45,6 +48,7 @@ CREDENTIAL_TERMS = (
     "token de acesso",
 )
 REMOTE_ACCESS_TERMS = (
+    "remote access", "share your screen", "install this app",
     "anydesk",
     "teamviewer",
     "acesso remoto",
@@ -52,6 +56,7 @@ REMOTE_ACCESS_TERMS = (
     "compartilhe sua tela",
 )
 PAYMENT_TERMS = (
+    "payment", "pay ", "transfer", "deposit",
     "pix",
     "transferência",
     "transferencia",
@@ -370,7 +375,7 @@ def _format_amounts(amounts: set[Decimal]) -> str:
 
 
 def _contains_any(text: str, terms: Iterable[str]) -> bool:
-    return any(term in text for term in terms)
+    return any(re.search(r"(?<!\w)" + re.escape(term.strip()) + r"(?!\w)", text) for term in terms)
 
 
 def _normalize(text: str) -> str:

@@ -1,107 +1,123 @@
 # ConfereAntes
 
-Projeto concluído no escopo de aplicação local de portfólio, versão 1.2. A entrega inclui implementação, testes automatizados, validação integrada e revisão visual em desktop e celular. [Critérios e evidências da entrega](ENTREGA.md).
+[English](README.md) · [Português](README.pt-BR.md)
 
-![Conferência com explicação local](docs/images/conferencia.png)
+A local tool for checking a message or payment request before making a Pix payment. Compare the original offer with the message you received, review differences in amounts and recipients, and see which details need another check.
 
-Comecei este projeto para ajudar a conferir uma mensagem ou cobrança antes de fazer um Pix. A ideia é comparar o que foi anunciado com o que chegou na conversa e chamar atenção para diferenças de valor, destinatário, links estranhos e sinais comuns de engenharia social.
+ConfereAntes uses deterministic rules for its score. An optional local model can explain the findings; it does not decide whether a payment is safe.
 
-O ConfereAntes roda no próprio computador. Ele não abre links, não acessa bancos e não envia as evidências para uma API externa. O resultado é um alerta explicável, não uma garantia de que uma cobrança seja legítima ou fraudulenta.
+![Comparison report — English interface](docs/images/conferencia-en.png)
 
-Esta versão inclui o processador Python, leitura de QR Code, API C# com EF Core/SQLite e explicações opcionais com IA generativa local. Veja [como executar o modo completo](ARQUITETURA.md) e a [revisão do roteiro](REVISAO.md).
+## Features
 
-## O que a versão 1.2 faz
+- Compare offer and payment-request text side by side.
+- Extract text from screenshots with local OCR.
+- Read QR codes into a field you can review, without opening their content.
+- Flag urgency, secrecy, credential requests, remote access and unusual links.
+- Compare Brazilian real amounts and recipient names.
+- Parse Pix copy-and-paste codes and check their CRC checksum.
+- Save selected analyses to encrypted local history.
+- Print a report or save it as PDF through the browser.
+- Use the interface, reports and optional explanations in English or Portuguese.
 
-- recebe texto ou capturas do anúncio e da conversa;
-- extrai texto das imagens com OCR local e permite revisão;
-- compara valores e nomes de destinatários;
-- identifica pressão, sigilo, pedido de credenciais e acesso remoto;
-- inspeciona o endereço escrito de links sem acessá-los;
-- valida a estrutura e a integridade CRC de um Pix copia e cola;
-- mostra os motivos da pontuação e uma recomendação para cada alerta;
-- salva análises apenas quando solicitado, usando histórico local criptografado;
-- permite imprimir o resultado ou salvá-lo como PDF pelo navegador.
-- decodifica QR Code de uma imagem sem abrir o conteúdo;
-- registra análises pela API C# no modo completo;
-- pode gerar uma explicação dos alertas com Ollama no próprio computador.
+Pix is Brazil's instant payment system. The English interface still handles Pix codes and Brazilian amounts such as `R$ 1.850,00`. It does not convert currencies.
 
-## Instalação no Windows
+## Architecture
 
-Requer Python 3.11 ou superior.
+| Component | Purpose |
+| --- | --- |
+| Python / FastAPI | Web interface, rule engine, OCR and QR decoding |
+| ASP.NET Core / C# | Analysis orchestration and history API |
+| EF Core / SQLite | Encrypted history in full mode |
+| Ollama / Qwen 2.5 1.5B | Optional explanations on the same computer |
+
+The web interface runs at `http://127.0.0.1:8000`. Full mode adds the C# API on port 5080. Ollama uses port 11434. The services bind to loopback by default.
+
+## Quick start — Windows
+
+Requires Python 3.11 or later. Full mode also requires the .NET 10 SDK.
 
 ```powershell
+git clone https://github.com/caio-vasconcellos/confereantes.git
+cd confereantes
 Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\configurar.ps1
+.\scripts\setup.ps1
+.\scripts\start-full.ps1
 ```
 
-O OCR é instalado junto com o projeto e usa modelos locais. A primeira leitura pode demorar um pouco mais enquanto o motor é carregado.
+For Python-only mode, use `.\scripts\start.ps1`. This mode has its own history and does not need .NET.
 
-## Executar
+The English launchers select English. You can change the language at the top of either page; the preference lasts for the browser session. The Portuguese launchers remain available under their original names.
+
+### Optional local explanations
+
+Install Ollama, then start it with:
 
 ```powershell
-.\scripts\iniciar.ps1
+.\scripts\start-ai.ps1
 ```
 
-O navegador abre em `http://127.0.0.1:8000`. O servidor não é exposto para outros computadores da rede.
-
-Para usar também a API C# e o histórico EF Core, instale o SDK .NET 10 e execute:
+In another terminal, download the model once:
 
 ```powershell
-.\scripts\iniciar-completo.ps1
+ollama pull qwen2.5:1.5b
 ```
 
-A IA é opcional. Inicie o Ollama com `scripts\iniciar-ia.ps1`, instale uma vez o modelo com `ollama pull qwen2.5:1.5b` e marque a opção de explicação no formulário. A análise por regras funciona sem o modelo. Detalhes de configuração estão em [ARQUITETURA.md](ARQUITETURA.md).
+For the portable installation, use `.\.tools\ollama\ollama.exe` instead of `ollama`. Select the local-explanation option in the form. The first request may take up to three minutes while the model loads.
 
-## Desenvolvimento
+Ollama receives finding labels, generic recommendations, the risk level and score. It does not receive the original messages, names, links or Pix keys. Evidence is not sent to an external analysis service.
+
+## Try it
+
+Click **Try an example** to fill in a fictional listing and payment request. Run the check, then inspect the reasons behind the score. You can also upload an offer screenshot or a QR-code image.
+
+The language setting changes the interface, not your evidence. Messages stay exactly as entered. The rule set recognizes selected warning phrases in Portuguese and English.
+
+## Development
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[ocr,dev]"
-pytest
-confereantes
+confereantes --lang en
 ```
 
-## Privacidade
-
-- O aplicativo não mantém um acervo de imagens. O recebimento do upload pode usar arquivos temporários gerenciados pelo framework; o OCR trabalha com os bytes lidos.
-- O histórico é desativado por padrão.
-- Quando ativado, o histórico fica em `%LOCALAPPDATA%\ConfereAntes`.
-- O conteúdo de cada análise é criptografado antes de ser salvo no SQLite.
-- No modo completo, a API usa um banco próprio em `%LOCALAPPDATA%\ConfereAntes\api`; o histórico anterior do modo Python não é migrado automaticamente.
-- A chave de criptografia permanece no mesmo perfil do Windows; ela protege o banco contra leitura casual, mas não contra alguém que já controla a conta do usuário.
-- Evidências reais nunca devem ser adicionadas ao Git.
-
-Mais detalhes estão em [PRIVACIDADE.md](PRIVACIDADE.md) e [SEGURANCA.md](SEGURANCA.md).
-
-## Limites
-
-- OCR pode errar; revise sempre o texto extraído.
-- A comparação de nomes é aproximada e pode gerar alertas indevidos.
-- O aplicativo não consulta titularidade de chave Pix nem reputação de domínio.
-- Um resultado de risco baixo não comprova legitimidade.
-
-## Testes
+Tests:
 
 ```powershell
-pytest
+python -m pytest -q
+node --test tests/frontend.test.cjs
+dotnet test api/ConfereAntes.Api.Tests
+python scripts/smoke_completo.py --lang en
 ```
 
-Os testes cobrem o motor de risco, parser de Pix, histórico criptografado e rotas web. O GitHub Actions executa a suíte automaticamente em cada envio.
+The smoke test starts real services with an isolated database. Keep ports 8000 and 5080 free. Add `--with-ai` when Ollama and the model are running. GitHub Actions checks Python, JavaScript, C# and both interface languages.
 
-Os testes adicionais cobrem QR Code real, isolamento do cliente de IA e persistência da API C#. Para estes últimos: `dotnet test api/ConfereAntes.Api.Tests`.
-
-Os testes do navegador em JavaScript rodam com `node --test tests/frontend.test.cjs`. O roteiro de demonstração está em [DEMONSTRACAO.md](DEMONSTRACAO.md).
-
-## Estrutura
+## Project structure
 
 ```text
-src/confereantes/
-├── main.py          # rotas e validações web
-├── risk_engine.py   # regras explicáveis
-├── pix.py           # leitura do Pix copia e cola
-├── ocr.py           # validação de imagem e OCR local
-├── history.py       # histórico SQLite criptografado
-├── templates/       # páginas HTML
-└── static/          # CSS e JavaScript
+src/confereantes/      FastAPI app, rules, OCR, QR, localization and local-model client
+api/                  ASP.NET Core API and integration tests
+scripts/              Windows launchers and end-to-end smoke test
+tests/                Python and JavaScript tests
+docs/                 English documentation and screenshots
 ```
+
+## Limits and privacy
+
+The score is a collection of warning rules, not a fraud probability. A low score does not prove a request is legitimate. OCR, approximate name matching and model explanations can be wrong.
+
+CRC checks code integrity, not ownership of a Pix key or the recipient's legitimacy. ConfereAntes does not query banks or domain-reputation services and does not make payments.
+
+History is off by default. Python-only and full mode keep separate databases; there is no automatic migration. Keys stay in the same local profile, so encryption does not protect against someone who controls that account. Upload handling may use temporary local files. Do not commit real evidence to Git.
+
+## Documentation
+
+- [Architecture and setup](docs/en/ARCHITECTURE.md)
+- [Privacy](docs/en/PRIVACY.md) and [security](docs/en/SECURITY.md)
+- [Demo walkthrough](docs/en/DEMO.md)
+- [Design notes](docs/en/DESIGN.md)
+- [Review notes](docs/en/REVIEW.md) and [validation record](docs/en/DELIVERY.md)
+- [Changelog](docs/en/CHANGELOG.md)
+
+Author: Caio Pires Vasconcellos.

@@ -1,12 +1,22 @@
-# Entrega — ConfereAntes 1.2
+# Registro de validação — ConfereAntes
+
+[English](docs/en/DELIVERY.md) · [Português](ENTREGA.md)
 
 Data: 6 de novembro de 2026.
 
+## Versão 1.3 — português e inglês
+
+- 58 testes Python e 18 subcasos, 2 testes JavaScript e 1 integração C# aprovados.
+- Relatório e explicação local em inglês conferidos no navegador, com dados fictícios.
+- Fluxo real Python → C# → Python, QR, histórico e IA local aprovado nos dois idiomas.
+- Seletor de idioma e layout em 390 px conferidos, sem rolagem horizontal ou erros de console.
+- [Captura do relatório em inglês](docs/images/conferencia-en.png).
+
+Os resultados abaixo registram a validação da versão 1.2.
+
 ## Estado
 
-Projeto concluído no escopo acordado de aplicativo local para portfólio: comparar evidências de uma cobrança e apresentar sinais explicáveis, com OCR, QR Code, API C#, EF Core/SQLite e explicação opcional por IA local.
-
-Não há pendência funcional conhecida bloqueando esse escopo. Evoluções, manutenção e correções futuras não fazem parte de uma promessa de software sem defeitos.
+Este registro reúne os testes da versão 1.2: comparação de evidências de cobrança, OCR, QR Code, API C#, EF Core/SQLite e explicação opcional por IA local. As mudanças posteriores estão no [histórico de versões](CHANGELOG.md).
 
 ## Critérios de aceitação
 
