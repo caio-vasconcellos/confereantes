@@ -43,6 +43,7 @@
         {% endfor %}
       </div>
       <form action="/historico/limpar" method="post" class="danger-zone" data-confirm-clear>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <p>Apagar remove todas as análises salvas deste computador.</p>
         <button class="button-danger" type="submit">Apagar histórico</button>
       </form>

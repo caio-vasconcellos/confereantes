@@ -1,5 +1,17 @@
 # Histórico de versões
 
+## 1.2.0 — 2026-11-06
+
+- entrega final do escopo local de portfólio, com relatório de aceitação e demonstração;
+- validação visual do fluxo completo e do formulário móvel, com capturas fictícias;
+- modelo local Qwen 2.5 1.5B e explicações JSON validadas; descarte de saída truncada;
+- proteção CSRF em formulários e uploads, compatível com navegador integrado;
+- OCR e QR preservam campos editados durante uma leitura assíncrona;
+- links malformados não interrompem a análise;
+- comparação correta de valores como `1850,00` e `1.850,00`;
+- rejeição de Pix com campos repetidos, CRC fora do fim ou valor inválido;
+- ampliação para 50 testes Python, 2 testes JavaScript e integração C#.
+
 ## 1.1.0 — 2026-11-04
 
 - leitura local de QR Code com preenchimento revisável do Pix ou link;

@@ -7,6 +7,7 @@ import io
 import os
 from pathlib import Path
 import secrets
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -53,12 +54,15 @@ def main():
             headers = {"X-ConfereAntes-Token": env["CONFEREANTES_SERVICE_TOKEN"]}
             api = "http://127.0.0.1:5080"
             ui = "http://127.0.0.1:8000"
+            home = client.get(ui + "/")
+            csrf = re.search(r'name="csrf-token" content="([^"]+)"', home.text).group(1)
+            browser_headers = {"X-ConfereAntes-CSRF": csrf}
             assert client.get(api + "/historico").status_code == 401
             assert client.post(ui + "/api/analisar", json={"received_text": "Pix agora"}).status_code == 401
             image = qrcode.make("https://exemplo.invalid/cobranca")
             output = io.BytesIO()
             image.save(output, "PNG")
-            response = client.post(ui + "/api/qr", files={"image": ("teste.png", output.getvalue(), "image/png")})
+            response = client.post(ui + "/api/qr", files={"image": ("teste.png", output.getvalue(), "image/png")}, headers=browser_headers)
             assert response.status_code == 200, response.text
             assert response.json()["text"] == "https://exemplo.invalid/cobranca"
             payload = {"original_text": "Produto de R$ 100,00", "received_text": "Faça Pix de R$ 200,00 agora e envie a senha."}
@@ -67,7 +71,7 @@ def main():
             assert direct.json()["level"] == "alto"
             print("QR e análise C# -> Python aprovados.", flush=True)
             assert client.get(api + "/historico", headers=headers).json() == []
-            response = client.post(ui + "/analisar", data={**payload, "save_history": "1", "use_ai": "1" if args.with_ai else ""})
+            response = client.post(ui + "/analisar", data={**payload, "save_history": "1", "use_ai": "1" if args.with_ai else ""}, headers=browser_headers)
             assert response.status_code == 200, response.text
             assert "Nível: Alto" in response.text
             if args.with_ai:
@@ -80,7 +84,7 @@ def main():
             with sqlite3.connect(database_dir / "historico.db") as connection:
                 encrypted = connection.execute("SELECT ProtectedPayload FROM Analyses").fetchone()[0]
             assert payload["received_text"] not in encrypted
-            assert client.post(ui + "/historico/limpar").status_code == 303
+            assert client.post(ui + "/historico/limpar", headers=browser_headers).status_code == 303
             assert client.get(api + "/historico", headers=headers).json() == []
         print("OK: QR real, token, Python -> C# -> Python, EF Core/SQLite criptografado, leitura e limpeza do histórico" + (", IA local real" if args.with_ai else ""))
     finally:

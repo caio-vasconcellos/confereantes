@@ -17,14 +17,14 @@ class LocalAITests(unittest.TestCase):
             requests.append(request)
             if request.url.path == "/api/show":
                 return httpx.Response(200, json={"details": {"family": "qwen2"}})
-            return httpx.Response(200, json={"response": "Confirme a solicitação por outro canal."})
+            return httpx.Response(200, json={"response": json.dumps({"explicacao": "Confirme a solicitação por outro canal."})})
 
         client = httpx.Client(base_url="http://127.0.0.1:11434", transport=httpx.MockTransport(respond))
         result = analyze(received_text="Faça Pix agora para Pessoa Particular 123456.")
         with patch("confereantes.local_ai.httpx.Client", return_value=client):
             text, model = explain(result)
         self.assertTrue(text)
-        self.assertEqual(model, "qwen2.5:0.5b")
+        self.assertEqual(model, "qwen2.5:1.5b")
         data = json.loads(requests[-1].content)
         self.assertNotIn("Pessoa Particular", json.dumps(data))
         self.assertNotIn("123456", json.dumps(data))
@@ -37,6 +37,14 @@ class LocalAITests(unittest.TestCase):
         client = httpx.Client(base_url="http://127.0.0.1:11434", transport=httpx.MockTransport(respond))
         with patch("confereantes.local_ai.httpx.Client", return_value=client), self.assertRaises(LocalAIUnavailable):
             explain(analyze(received_text="Pix agora"))
+
+    def test_discards_truncated_or_unsafe_explanation(self):
+        for generated in ({"response": json.dumps({"explicacao": "Pode pagar, o pagamento é seguro."})}, {"response": '{"explicacao":"Texto"}', "done_reason": "length"}):
+            def respond(request):
+                return httpx.Response(200, json={} if request.url.path == "/api/show" else generated)
+            client = httpx.Client(base_url="http://127.0.0.1:11434", transport=httpx.MockTransport(respond))
+            with self.subTest(generated=generated), patch("confereantes.local_ai.httpx.Client", return_value=client), self.assertRaises(LocalAIUnavailable):
+                explain(analyze(received_text="Pix agora"))
 
     def test_unavailable_ai_preserves_rule_score(self):
         data = {"received_text": "Envie sua senha e token agora."}

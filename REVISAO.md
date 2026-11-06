@@ -30,7 +30,7 @@ As três pendências funcionais identificadas na revisão inicial foram implemen
 - Teste real `scripts/smoke_completo.py --with-ai` aprovado neste computador: QR de imagem fictícia, ciclo Python → C# → Python, histórico EF Core criptografado, leitura e limpeza e geração com Ollama/Qwen local.
 - Modelo e executáveis ficam em `.tools`, ignorado pelo Git. O primeiro carregamento da IA exige mais tempo; a interface informa esse limite e preserva o resultado das regras em caso de falha.
 - 27 testes Python e um teste C# de integração aprovados localmente. O CI inclui também o fluxo real dos serviços sem exigir o modelo de IA.
-- A tentativa de revisão visual da versão 1.1 foi limitada por falha de conexão da prévia no navegador integrado. O formulário e seu resultado foram verificados por HTTP no teste de ponta a ponta; não se afirma nova validação visual de desktop/celular nesta versão.
+- A revisão visual da versão 1.1 ficou limitada pela conexão do navegador. Essa pendência foi resolvida na versão 1.2 em 6 de novembro: OCR, QR, análise com IA, histórico, desktop e formulário móvel foram conferidos no navegador. Consulte [ENTREGA.md](ENTREGA.md).
 
 ## Revisão antes da publicação
 

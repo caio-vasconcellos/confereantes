@@ -6,15 +6,35 @@ import qrcode
 
 import httpx
 
-from confereantes.main import app
+from confereantes.main import app, CSRF_TOKEN
 from confereantes.ocr import OCRResult
 
 
 class WebTests(unittest.IsolatedAsyncioTestCase):
+    async def test_plain_form_token_works_without_javascript_header(self):
+        response = await self.client.post("/analisar", data={"received_text": "Mensagem de teste", "csrf_token": CSRF_TOKEN}, headers={"X-ConfereAntes-CSRF": "", "origin": "null"})
+        self.assertEqual(response.status_code, 200)
+
+    async def test_rejects_cross_site_mutation(self):
+        for headers in ({"origin": "https://exemplo.invalid"}, {"sec-fetch-site": "cross-site"}, {"origin": "null"}):
+            with self.subTest(headers=headers):
+                response = await self.client.post("/historico/limpar", headers={**headers, "X-ConfereAntes-CSRF": ""})
+                self.assertEqual(response.status_code, 403)
+
+    async def test_same_origin_form_is_allowed(self):
+        response = await self.client.post("/analisar", data={"received_text": "Mensagem de teste"}, headers={"origin": "http://testserver"})
+        self.assertEqual(response.status_code, 200)
+
+    async def test_escapes_untrusted_content_in_report(self):
+        response = await self.client.post("/analisar", data={"received_text": '<script>alert("teste")</script>', "expected_recipient": "Loja", "displayed_recipient": '<img src=x onerror=alert(1)>'})
+        self.assertNotIn('<img src=x onerror=alert(1)>', response.text)
+        self.assertIn("&lt;img", response.text)
+
     async def asyncSetUp(self) -> None:
         self.client = httpx.AsyncClient(
             transport=httpx.ASGITransport(app=app),
             base_url="http://testserver",
+            headers={"X-ConfereAntes-CSRF": CSRF_TOKEN},
         )
 
     async def asyncTearDown(self) -> None:

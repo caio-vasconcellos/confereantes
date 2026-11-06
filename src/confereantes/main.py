@@ -59,7 +59,7 @@ class SecurityHeadersMiddleware:
 app = FastAPI(
     title="ConfereAntes",
     description="Análise local e explicável de sinais de risco.",
-    version="1.1.0",
+    version="1.2.0",
     docs_url=None,
     redoc_url=None,
 )
@@ -67,6 +67,14 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost
 app.add_middleware(SecurityHeadersMiddleware)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
+CSRF_TOKEN = secrets.token_urlsafe(32)
+templates.env.globals["csrf_token"] = CSRF_TOKEN
+
+
+def check_browser_token(request: Request, form_token: str = "") -> None:
+    supplied = request.headers.get("X-ConfereAntes-CSRF", "") or form_token
+    if not secrets.compare_digest(supplied.encode("utf-8"), CSRF_TOKEN.encode("utf-8")):
+        raise HTTPException(403, "Reabra a página antes de enviar. Token do formulário inválido.")
 
 
 @lru_cache(maxsize=1)
@@ -102,9 +110,11 @@ async def run_analysis(
     displayed_recipient: Annotated[str, Form()] = "",
     save_history: Annotated[str, Form()] = "",
     use_ai: Annotated[str, Form()] = "",
+    csrf_token: Annotated[str, Form()] = "",
     original_image: Annotated[UploadFile | None, File()] = None,
     received_image: Annotated[UploadFile | None, File()] = None,
 ) -> HTMLResponse:
+    check_browser_token(request, csrf_token)
     values: dict[str, str | bool] = {
         "original_text": original_text.strip(),
         "received_text": received_text.strip(),
@@ -127,6 +137,9 @@ async def run_analysis(
         text, message = await _extract_upload(received_image)
         values["received_text"] = text
         (errors if not text else messages).append(message)
+
+    # Aplica os mesmos limites aos textos extraídos das imagens.
+    errors.extend(error for error in _validate_values(values) if error not in errors)
 
     if not values["original_text"] and not values["received_text"] and not values["link"] and not values["pix"]:
         errors.append("Informe pelo menos um texto, uma imagem, um link ou um código Pix.")
@@ -172,7 +185,8 @@ async def run_analysis(
 
 
 @app.post("/api/ocr")
-async def run_ocr(image: Annotated[UploadFile, File()]) -> JSONResponse:
+async def run_ocr(request: Request, image: Annotated[UploadFile, File()]) -> JSONResponse:
+    check_browser_token(request)
     text, message = await _extract_upload(image)
     if not text:
         return JSONResponse({"ok": False, "error": message}, status_code=422)
@@ -197,7 +211,8 @@ async def history(request: Request) -> HTMLResponse:
 
 
 @app.post("/historico/limpar")
-async def clear_history() -> RedirectResponse:
+async def clear_history(request: Request, csrf_token: Annotated[str, Form()] = "") -> RedirectResponse:
+    check_browser_token(request, csrf_token)
     if api_enabled():
         try:
             await api_request("DELETE", "/historico")
@@ -268,7 +283,7 @@ def _result_from_dict(data: dict) -> AnalysisResult:
 @app.post("/api/analisar")
 async def process_for_api(request: Request, payload: AnalysisInput):
     token = service_token()
-    if not token or not secrets.compare_digest(request.headers.get("X-ConfereAntes-Token", ""), token):
+    if not token or not secrets.compare_digest(request.headers.get("X-ConfereAntes-Token", "").encode("utf-8"), token.encode("utf-8")):
         raise HTTPException(401, "Acesso interno não autorizado.")
     data = payload.model_dump(exclude={"explain"})
     if not any(data[name].strip() for name in ("original_text", "received_text", "link", "pix")):
@@ -278,7 +293,8 @@ async def process_for_api(request: Request, payload: AnalysisInput):
 
 
 @app.post("/api/qr")
-async def read_qr(image: Annotated[UploadFile, File()]):
+async def read_qr(request: Request, image: Annotated[UploadFile, File()]):
+    check_browser_token(request)
     try:
         data = await image.read(MAX_IMAGE_BYTES + 1)
         codes = await run_in_threadpool(decode_qr, data, content_type=image.content_type or "")

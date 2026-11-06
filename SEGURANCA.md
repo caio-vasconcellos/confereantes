@@ -21,6 +21,9 @@ Ao relatar uma falha, use apenas exemplos fictícios e informe a versão do Pyth
 - IA opcional recebe somente rótulos de regras e recomendações, sem evidências originais;
 - saída da IA escapada no HTML e sem poder de alterar a pontuação;
 - QR Code decodificado sem navegar no destino; múltiplos códigos são recusados.
+- formulários e uploads exigem token CSRF por processo, distinto do token entre serviços;
+- o cliente descarta saídas de IA fora do formato, truncadas ou contendo algumas recomendações inseguras conhecidas; isso não é garantia de correção semântica;
+- links e códigos Pix malformados recebem alertas, sem navegação ou pagamento.
 
 ## Escopo
 

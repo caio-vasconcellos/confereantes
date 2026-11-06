@@ -25,6 +25,17 @@ def build_pix_payload() -> str:
 
 
 class PixParserTests(unittest.TestCase):
+    def test_rejects_duplicate_field_and_nonterminal_crc(self):
+        for value in (build_pix_payload() + "5802BR", "0002010002016304ABCD"):
+            with self.subTest(value=value), self.assertRaises(PixPayloadError):
+                parse_pix_payload(value)
+
+    def test_rejects_nonfinite_negative_or_malformed_amount(self):
+        for amount in ("NaN", "Infinity", "-10.00", "0.00", "100.000"):
+            value = build_pix_payload().replace("5406100.00", f"54{len(amount):02d}{amount}")
+            with self.subTest(amount=amount), self.assertRaises(PixPayloadError):
+                parse_pix_payload(value)
+
     def test_parses_valid_payload(self) -> None:
         payload = parse_pix_payload(build_pix_payload())
 

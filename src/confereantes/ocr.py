@@ -50,7 +50,7 @@ def extract_text(data: bytes, *, content_type: str = "", language: str = "pt") -
             if image.width < 1400:
                 scale = min(2.0, 1400 / max(1, image.width))
                 image = image.resize((round(image.width * scale), round(image.height * scale)))
-    except (UnidentifiedImageError, OSError) as exc:
+    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as exc:
         raise OCRInputError("O arquivo não é uma imagem válida.") from exc
 
     try:

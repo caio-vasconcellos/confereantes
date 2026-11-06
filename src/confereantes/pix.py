@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
+import re
 
 
 class PixPayloadError(ValueError):
@@ -25,10 +26,10 @@ def parse_pix_payload(raw: str) -> PixPayload:
 
     fields = _parse_tlv(value)
     crc_value = fields.get("63", "")
-    if len(crc_value) != 4:
+    if not re.fullmatch(r"[0-9a-fA-F]{4}", crc_value) or value[-8:-4] != "6304":
         raise PixPayloadError("O código não possui um CRC válido no final.")
 
-    crc_prefix = value[: value.rfind("6304") + 4]
+    crc_prefix = value[:-4]
     crc_valid = _crc16_ccitt(crc_prefix.encode("utf-8")) == crc_value.upper()
 
     merchant_account = {}
@@ -43,18 +44,21 @@ def parse_pix_payload(raw: str) -> PixPayload:
                 break
 
     additional = {}
+    if not merchant_account or fields.get("53") != "986" or fields.get("58") != "BR":
+        raise PixPayloadError("O código não identifica um pagamento Pix em reais no Brasil.")
     if "62" in fields:
         try:
             additional = _parse_tlv(fields["62"])
-        except PixPayloadError:
-            pass
+        except PixPayloadError as exc:
+            raise PixPayloadError("Dados adicionais inválidos no código Pix.") from exc
 
     amount = None
     if fields.get("54"):
-        try:
-            amount = Decimal(fields["54"])
-        except InvalidOperation:
-            pass
+        if not re.fullmatch(r"\d+(?:\.\d{1,2})?", fields["54"]):
+            raise PixPayloadError("Valor inválido no código Pix.")
+        amount = Decimal(fields["54"])
+        if not amount.is_finite() or amount <= 0:
+            raise PixPayloadError("Valor inválido no código Pix.")
 
     return PixPayload(
         merchant_name=fields.get("59", "").strip(),
@@ -73,8 +77,10 @@ def _parse_tlv(value: str) -> dict[str, str]:
         if cursor + 4 > len(value):
             raise PixPayloadError("Campo incompleto no código Pix.")
         tag = value[cursor : cursor + 2]
+        if not tag.isascii() or not tag.isdigit() or tag in fields:
+            raise PixPayloadError("Identificador de campo inválido ou repetido no código Pix.")
         raw_length = value[cursor + 2 : cursor + 4]
-        if not raw_length.isdigit():
+        if not raw_length.isascii() or not raw_length.isdigit():
             raise PixPayloadError("Tamanho de campo inválido no código Pix.")
         length = int(raw_length)
         start = cursor + 4

@@ -13,6 +13,8 @@ flowchart LR
 
 Os endereços internos são fixos no loopback. As chamadas entre API e processador levam um token gerado pelo iniciador, que não é salvo no Git nem enviado ao navegador. A API recusa iniciar sem token. Os clientes internos não utilizam proxy nem seguem redirecionamentos.
 
+Formulários e uploads usam outro token, de proteção CSRF. O HTML fornece esse token como campo oculto ou cabeçalho de upload. Scripts que chamem as rotas da interface precisam primeiro carregar a página; a API entre serviços continua usando sua autenticação própria.
+
 ## Instalação
 
 1. Instale Python 3.11+ e execute `scripts/configurar.ps1`.
@@ -28,14 +30,16 @@ Instale o [Ollama para Windows](https://ollama.com/download/windows) ou disponib
 Com o servidor ativo, execute uma vez em outro terminal:
 
 ```powershell
-ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:1.5b
 ```
 
 Se estiver usando o pacote portátil, substitua `ollama` por `.\.tools\ollama\ollama.exe`. O download do modelo requer internet. As inferências usam `127.0.0.1:11434`. Marque **Adicionar explicação com IA local** ao analisar. Não é necessário baixar modelo para executar os testes automatizados.
 
-O cliente aceita somente `qwen2.5:0.5b`, consulta seus metadados locais e rejeita um modelo com indicação de host remoto. Envia apenas títulos de alertas, recomendações genéricas, nível e pontuação. Textos originais, nomes, URLs, chaves Pix e evidências não entram no prompt. O modelo não tem ferramentas, acesso ao banco ou poder de mudar a pontuação. A saída é texto escapado pelo template, identificada como gerada e sujeita a erro. Falhas do motor aparecem como aviso e não impedem o relatório das regras.
+O cliente aceita somente `qwen2.5:1.5b`, consulta seus metadados locais e rejeita um modelo com indicação de host remoto. Envia apenas títulos de alertas, recomendações genéricas, nível e pontuação. Textos originais, nomes, URLs, chaves Pix e evidências não entram no prompt. O modelo não tem ferramentas, acesso ao banco ou poder de mudar a pontuação. A saída é texto escapado pelo template, identificada como gerada e sujeita a erro. Falhas do motor aparecem como aviso e não impedem o relatório das regras.
 
 O modelo pequeno facilita a execução em CPU, com qualidade limitada. Não há alegação de precisão clínica, bancária ou de detecção de fraude. A saída generativa deve ser revisada.
+
+Na versão 1.2, a resposta usa um esquema JSON com o campo `explicacao`. Texto vazio, estrutura inválida, resposta truncada e algumas frases inseguras conhecidas causam descarte e um aviso. O modelo 0.5B foi substituído pelo 1.5B após a validação visual encontrar uma explicação inadequada. A validação automática não consegue garantir o sentido de toda resposta possível.
 
 Referência do protocolo: [Ollama Generate](https://docs.ollama.com/api/generate) e [modo local](https://docs.ollama.com/faq).
 

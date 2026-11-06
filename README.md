@@ -1,12 +1,16 @@
 # ConfereAntes
 
+Projeto concluído no escopo de aplicação local de portfólio, versão 1.2. A entrega inclui implementação, testes automatizados, validação integrada e revisão visual em desktop e celular. [Critérios e evidências da entrega](ENTREGA.md).
+
+![Conferência com explicação local](docs/images/conferencia.png)
+
 Comecei este projeto para ajudar a conferir uma mensagem ou cobrança antes de fazer um Pix. A ideia é comparar o que foi anunciado com o que chegou na conversa e chamar atenção para diferenças de valor, destinatário, links estranhos e sinais comuns de engenharia social.
 
 O ConfereAntes roda no próprio computador. Ele não abre links, não acessa bancos e não envia as evidências para uma API externa. O resultado é um alerta explicável, não uma garantia de que uma cobrança seja legítima ou fraudulenta.
 
 Esta versão inclui o processador Python, leitura de QR Code, API C# com EF Core/SQLite e explicações opcionais com IA generativa local. Veja [como executar o modo completo](ARQUITETURA.md) e a [revisão do roteiro](REVISAO.md).
 
-## O que a versão 1.1 faz
+## O que a versão 1.2 faz
 
 - recebe texto ou capturas do anúncio e da conversa;
 - extrai texto das imagens com OCR local e permite revisão;
@@ -46,7 +50,7 @@ Para usar também a API C# e o histórico EF Core, instale o SDK .NET 10 e execu
 .\scripts\iniciar-completo.ps1
 ```
 
-A IA é opcional. Inicie o Ollama com `scripts\iniciar-ia.ps1`, instale uma vez o modelo com `ollama pull qwen2.5:0.5b` e marque a opção de explicação no formulário. A análise por regras funciona sem o modelo. Detalhes de configuração estão em [ARQUITETURA.md](ARQUITETURA.md).
+A IA é opcional. Inicie o Ollama com `scripts\iniciar-ia.ps1`, instale uma vez o modelo com `ollama pull qwen2.5:1.5b` e marque a opção de explicação no formulário. A análise por regras funciona sem o modelo. Detalhes de configuração estão em [ARQUITETURA.md](ARQUITETURA.md).
 
 ## Desenvolvimento
 
@@ -86,6 +90,8 @@ pytest
 Os testes cobrem o motor de risco, parser de Pix, histórico criptografado e rotas web. O GitHub Actions executa a suíte automaticamente em cada envio.
 
 Os testes adicionais cobrem QR Code real, isolamento do cliente de IA e persistência da API C#. Para estes últimos: `dotnet test api/ConfereAntes.Api.Tests`.
+
+Os testes do navegador em JavaScript rodam com `node --test tests/frontend.test.cjs`. O roteiro de demonstração está em [DEMONSTRACAO.md](DEMONSTRACAO.md).
 
 ## Estrutura
 

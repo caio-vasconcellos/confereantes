@@ -8,6 +8,24 @@ from confereantes.risk_engine import analyze
 
 
 class RiskEngineTests(unittest.TestCase):
+    def test_untrusted_urls_never_crash_analysis(self) -> None:
+        for link in ("http://[", "https://[invalid]", "https://example.com:wrong", "https://example.com:99999", "file://localhost/test", "https://exemplo.com\nmalicioso"):
+            with self.subTest(link=link):
+                result = analyze(link=link)
+                self.assertIn("Link malformado", [item.title for item in result.findings])
+
+    def test_unseparated_thousands_compare_correctly(self) -> None:
+        result = analyze(original_text="R$ 1850,00", received_text="R$ 850,00")
+        self.assertIn("Valores divergentes", [item.title for item in result.findings])
+
+    def test_equivalent_currency_formats_do_not_alert(self) -> None:
+        result = analyze(original_text="R$ 1.850,00", received_text="R$ 1850,00")
+        self.assertNotIn("Valores divergentes", [item.title for item in result.findings])
+
+    def test_explicit_password_request_is_detected(self) -> None:
+        result = analyze(received_text="Envie sua senha para liberar o produto.")
+        self.assertIn("Pedido de senha ou código", [item.title for item in result.findings])
+
     def test_detects_urgent_payment_and_credential_request(self) -> None:
         result = analyze(
             received_text="Pague o Pix agora e envie o código de verificação. Sua conta será bloqueada.",

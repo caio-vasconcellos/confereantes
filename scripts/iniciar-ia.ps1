@@ -10,5 +10,5 @@ if (-not (Test-Path -LiteralPath $ollamaPath)) {
 $env:OLLAMA_HOST = '127.0.0.1:11434'
 $env:OLLAMA_NO_CLOUD = '1'
 $env:OLLAMA_MODELS = Join-Path $projectRoot '.tools\models'
-Write-Host 'Ollama local. Em outro terminal, execute ollama pull qwen2.5:0.5b uma vez.'
+Write-Host 'Ollama local. Em outro terminal, execute ollama pull qwen2.5:1.5b uma vez.'
 & $ollamaPath serve

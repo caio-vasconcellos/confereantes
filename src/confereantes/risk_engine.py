@@ -33,6 +33,9 @@ SECRECY_TERMS = (
     "apague a conversa",
 )
 CREDENTIAL_TERMS = (
+    "envie sua senha",
+    "envie a senha",
+    "informe o token",
     "envie o código",
     "envie o codigo",
     "código de verificação",
@@ -168,11 +171,18 @@ def _inspect_link(raw_link: str) -> list[Finding]:
     if not value:
         return []
 
-    parsed = urlparse(value if "://" in value else f"http://{value}")
-    host = (parsed.hostname or "").lower().rstrip(".")
+    try:
+        parsed = urlparse(value if "://" in value else f"http://{value}")
+        host = (parsed.hostname or "").lower().rstrip(".")
+        parsed.port  # Valida também portas não numéricas ou fora do intervalo.
+        invalid = parsed.scheme not in {"http", "https"}
+    except ValueError:
+        parsed = None
+        host = ""
+        invalid = True
     findings: list[Finding] = []
 
-    if not host or any(char.isspace() for char in value):
+    if invalid or not host or any(char.isspace() or ord(char) < 32 for char in value):
         return [
             Finding(
                 severity="atencao",
@@ -346,7 +356,7 @@ def _compare_amounts(original_text: str, received_text: str) -> list[Finding]:
 
 def _extract_brl_amounts(text: str) -> set[Decimal]:
     amounts: set[Decimal] = set()
-    for match in re.findall(r"(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*(?:,\d{2}))", text, flags=re.IGNORECASE):
+    for match in re.findall(r"(?<![\d.,])(?:R\$\s*)?(\d{1,3}(?:\.\d{3})+,\d{2}|\d+,\d{2})(?!\d)", text, flags=re.IGNORECASE):
         normalized = match.replace(".", "").replace(",", ".")
         try:
             amounts.add(Decimal(normalized))

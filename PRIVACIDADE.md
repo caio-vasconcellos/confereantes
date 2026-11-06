@@ -20,7 +20,7 @@ No modo completo, a API C# mantém um histórico separado em `%LOCALAPPDATA%\Con
 
 ## Explicação opcional por IA
 
-Quando solicitada, a explicação usa Ollama local com o modelo `qwen2.5:0.5b`. O prompt contém somente títulos de alertas, recomendações genéricas, nível e pontuação. O aplicativo não inclui nomes, textos originais, URLs ou chaves Pix no prompt. A explicação não é salva no histórico. A instalação inicial do motor e o download do modelo requerem internet; a inferência usa o servidor de loopback. Execute pelo script `iniciar-ia.ps1` para desativar recursos cloud do Ollama.
+Quando solicitada, a explicação usa Ollama local com o modelo `qwen2.5:1.5b`. O prompt contém somente títulos de alertas, recomendações genéricas, nível e pontuação. O aplicativo não inclui nomes, textos originais, URLs ou chaves Pix no prompt. A explicação não é salva no histórico. A instalação inicial do motor e o download do modelo requerem internet; a inferência usa o servidor de loopback. Execute pelo script `iniciar-ia.ps1` para desativar recursos cloud do Ollama.
 
 ## Rede
 
