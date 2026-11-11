@@ -33,7 +33,7 @@ try {
         } catch { Start-Sleep -Milliseconds 300 }
     }
     if (-not $apiReady) { throw (Get-ProjectMessage 'A API C# nao iniciou na porta 5080.' 'The C# API did not start on port 5080.') }
-    Write-Host (Get-ProjectMessage 'Modo completo: Python + C# / EF Core. Encerre com Ctrl+C.' 'Full mode: Python + C# / EF Core. Press Ctrl+C to stop.') -ForegroundColor Green
+    Write-Host (Get-ProjectMessage 'Modo C# opcional: interface Python + API C# / EF Core. Encerre com Ctrl+C.' 'Optional C# mode: Python interface + C# API / EF Core. Press Ctrl+C to stop.') -ForegroundColor Green
     if ($SemNavegador) { & $pythonPath -m confereantes.cli --no-browser }
     else { & $pythonPath -m confereantes.cli }
 } finally {

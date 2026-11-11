@@ -1,123 +1,82 @@
 # ConfereAntes
 
-[English](README.md) · [Português](README.pt-BR.md)
+[Português](README.md) · [English](README.en.md)
 
-A local tool for checking a message or payment request before making a Pix payment. Compare the original offer with the message you received, review differences in amounts and recipients, and see which details need another check.
+O ConfereAntes é uma ferramenta local para revisar uma cobrança antes de fazer um Pix. Ele compara o anúncio com a mensagem recebida e destaca diferenças de valor, destinatário, endereço e código Pix.
 
-ConfereAntes uses deterministic rules for its score. An optional local model can explain the findings; it does not decide whether a payment is safe.
+A pontuação vem de regras visíveis. Ela ajuda a organizar a conferência, mas não prova que uma cobrança é verdadeira ou falsa.
 
-![Comparison report — English interface](docs/images/conferencia-en.png)
+![Resultado da comparação](docs/images/conferencia.png)
 
-## Features
+## Começar
 
-- Compare offer and payment-request text side by side.
-- Extract text from screenshots with local OCR.
-- Read QR codes into a field you can review, without opening their content.
-- Flag urgency, secrecy, credential requests, remote access and unusual links.
-- Compare Brazilian real amounts and recipient names.
-- Parse Pix copy-and-paste codes and check their CRC checksum.
-- Save selected analyses to encrypted local history.
-- Print a report or save it as PDF through the browser.
-- Use the interface, reports and optional explanations in English or Portuguese.
-
-Pix is Brazil's instant payment system. The English interface still handles Pix codes and Brazilian amounts such as `R$ 1.850,00`. It does not convert currencies.
-
-## Architecture
-
-| Component | Purpose |
-| --- | --- |
-| Python / FastAPI | Web interface, rule engine, OCR and QR decoding |
-| ASP.NET Core / C# | Analysis orchestration and history API |
-| EF Core / SQLite | Encrypted history in full mode |
-| Ollama / Qwen 2.5 1.5B | Optional explanations on the same computer |
-
-The web interface runs at `http://127.0.0.1:8000`. Full mode adds the C# API on port 5080. Ollama uses port 11434. The services bind to loopback by default.
-
-## Quick start — Windows
-
-Requires Python 3.11 or later. Full mode also requires the .NET 10 SDK.
+Requer Python 3.11 ou mais recente no Windows.
 
 ```powershell
 git clone https://github.com/caio-vasconcellos/confereantes.git
 cd confereantes
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup.ps1
-.\scripts\start-full.ps1
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[ocr]"
+.\.venv\Scripts\python.exe -m confereantes.cli
 ```
 
-For Python-only mode, use `.\scripts\start.ps1`. This mode has its own history and does not need .NET.
+Acesse `http://127.0.0.1:8000` se o navegador não abrir sozinho. Esse modo já oferece regras, OCR, leitura de QR Code, histórico local e a explicação opcional por IA. Não é preciso instalar .NET para usar o aplicativo.
 
-The English launchers select English. You can change the language at the top of either page; the preference lasts for the browser session. The Portuguese launchers remain available under their original names.
+Se o Python não incluir `venv`, instale `virtualenv` com `python -m pip install virtualenv` e use `python -m virtualenv .venv` na primeira linha. Os scripts `configurar.ps1` e `iniciar.ps1`, na pasta `scripts`, são atalhos para a instalação e a abertura.
 
-### Optional local explanations
+## O que ele confere
 
-Install Ollama, then start it with:
+- valores em reais e nomes de destinatários;
+- sinais de urgência, sigilo, pedido de senha ou acesso remoto;
+- endereços incomuns, sem abrir o link informado;
+- estrutura e CRC do Pix copia e cola;
+- texto de capturas com OCR local;
+- conteúdo de um QR Code, exibido para revisão antes de qualquer ação;
+- campos vazios, textos longos, links quebrados e códigos Pix inválidos.
+
+O histórico só é salvo quando a opção correspondente é marcada. O relatório pode ser impresso ou salvo em PDF pelo navegador.
+
+## Recursos opcionais
+
+### API C# e EF Core
+
+O script abaixo troca o histórico Python por uma API ASP.NET Core com EF Core e SQLite. É uma integração de estudo; o resultado das regras continua sendo calculado em Python.
 
 ```powershell
-.\scripts\start-ai.ps1
+.\scripts\iniciar-completo.ps1
 ```
 
-In another terminal, download the model once:
+Esse modo requer o SDK .NET 10. Os dois modos mantêm históricos separados.
+
+### Explicação com modelo local
+
+Com o [Ollama](https://ollama.com/download/windows) instalado, inicie o servidor em um terminal:
+
+```powershell
+.\scripts\iniciar-ia.ps1
+```
+
+Em outro terminal, baixe o modelo uma vez:
 
 ```powershell
 ollama pull qwen2.5:1.5b
 ```
 
-For the portable installation, use `.\.tools\ollama\ollama.exe` instead of `ollama`. Select the local-explanation option in the form. The first request may take up to three minutes while the model loads.
+O modelo recebe os nomes dos alertas, recomendações genéricas, nível e pontuação; não recebe os textos originais, nomes, links ou chaves Pix. A explicação pode errar e nunca altera a pontuação.
 
-Ollama receives finding labels, generic recommendations, the risk level and score. It does not receive the original messages, names, links or Pix keys. Evidence is not sent to an external analysis service.
-
-## Try it
-
-Click **Try an example** to fill in a fictional listing and payment request. Run the check, then inspect the reasons behind the score. You can also upload an offer screenshot or a QR-code image.
-
-The language setting changes the interface, not your evidence. Messages stay exactly as entered. The rule set recognizes selected warning phrases in Portuguese and English.
-
-## Development
+## Desenvolvimento
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[ocr,dev]"
-confereantes --lang en
-```
-
-Tests:
-
-```powershell
-python -m pytest -q
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pytest -q
 node --test tests/frontend.test.cjs
 dotnet test api/ConfereAntes.Api.Tests
-python scripts/smoke_completo.py --lang en
 ```
 
-The smoke test starts real services with an isolated database. Keep ports 8000 and 5080 free. Add `--with-ai` when Ollama and the model are running. GitHub Actions checks Python, JavaScript, C# and both interface languages.
+O teste C# só é necessário ao alterar a integração opcional. O teste de ponta a ponta está em `scripts/smoke_completo.py` e usa as portas 8000 e 5080.
 
-## Project structure
+## Mais detalhes
 
-```text
-src/confereantes/      FastAPI app, rules, OCR, QR, localization and local-model client
-api/                  ASP.NET Core API and integration tests
-scripts/              Windows launchers and end-to-end smoke test
-tests/                Python and JavaScript tests
-docs/                 English documentation and screenshots
-```
-
-## Limits and privacy
-
-The score is a collection of warning rules, not a fraud probability. A low score does not prove a request is legitimate. OCR, approximate name matching and model explanations can be wrong.
-
-CRC checks code integrity, not ownership of a Pix key or the recipient's legitimacy. ConfereAntes does not query banks or domain-reputation services and does not make payments.
-
-History is off by default. Python-only and full mode keep separate databases; there is no automatic migration. Keys stay in the same local profile, so encryption does not protect against someone who controls that account. Upload handling may use temporary local files. Do not commit real evidence to Git.
-
-## Documentation
-
-- [Architecture and setup](docs/en/ARCHITECTURE.md)
-- [Privacy](docs/en/PRIVACY.md) and [security](docs/en/SECURITY.md)
-- [Demo walkthrough](docs/en/DEMO.md)
-- [Design notes](docs/en/DESIGN.md)
-- [Review notes](docs/en/REVIEW.md) and [validation record](docs/en/DELIVERY.md)
-- [Changelog](docs/en/CHANGELOG.md)
-
-Author: Caio Pires Vasconcellos.
+- [Como o projeto funciona](docs/COMO-FUNCIONA.md)
+- [Segurança e privacidade](docs/SEGURANCA-E-PRIVACIDADE.md)
+- [Histórico de mudanças](CHANGELOG.md)
