@@ -189,7 +189,7 @@ async def run_analysis(
                 result = _result_from_dict(data)
                 history_saved = bool(save_history)
             except (httpx.HTTPError, RuntimeError):
-                errors.append("A API C# local está indisponível. Reinicie pelo modo completo.")
+                errors.append("A API C# local está indisponível. Reinicie pelo script do modo C#.")
         else:
             result = await run_in_threadpool(_process, payload, bool(use_ai))
             if values["save_history"]:

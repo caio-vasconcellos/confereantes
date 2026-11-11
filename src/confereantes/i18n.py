@@ -111,7 +111,7 @@ EN = {
     "Loja Horizonte": "Horizonte Store", "Carlos da Silva": "Carlos da Silva",
     "Reabra a página antes de enviar. Token do formulário inválido.": "Reopen the page before submitting. The form token is invalid.",
     "Informe pelo menos um texto, uma imagem, um link ou um código Pix.": "Provide at least one text, image, link or Pix code.",
-    "A API C# local está indisponível. Reinicie pelo modo completo.": "The local C# API is unavailable. Restart the full mode.",
+    "A API C# local está indisponível. Reinicie pelo script do modo C#.": "The local C# API is unavailable. Restart it with the C# mode script.",
     "API C# indisponível. O histórico não foi alterado.": "The C# API is unavailable. The history was not changed.",
     "Cada campo de texto deve ter no máximo 30.000 caracteres.": "Each text field can contain up to 30,000 characters.",
     "Link, Pix e nomes devem ter no máximo 2.000 caracteres.": "Links, Pix codes and names can contain up to 2,000 characters.",

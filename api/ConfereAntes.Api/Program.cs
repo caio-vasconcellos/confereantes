@@ -76,7 +76,7 @@ app.MapPost("/analises", async (AnalysisRequest input, IHttpClientFactory factor
         }
         return Results.Json(result);
     } catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException) {
-        return Results.Problem(Message("Processador Python indisponível. Inicie o modo completo.", "The Python processor is unavailable. Start full mode."), statusCode: 503);
+        return Results.Problem(Message("Processador Python indisponível. Reinicie pelo script do modo C#.", "The Python processor is unavailable. Restart it with the C# mode script."), statusCode: 503);
     }
 });
 app.MapGet("/historico", async (HistoryDb db, IDataProtectionProvider protection) => {
