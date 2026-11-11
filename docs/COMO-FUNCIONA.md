@@ -26,7 +26,7 @@ Navegador → FastAPI → API C# → regras Python
 
 A API C# demonstra comunicação entre serviços, validação e persistência com EF Core. Ela não possui um segundo motor de risco. As chamadas usam endereços locais e um token criado pelo script de inicialização.
 
-Essa integração foi mantida porque mostra C# e EF Core em funcionamento real, mas deixou de ser apresentada como requisito ou como uma versão “mais completa” do aplicativo.
+O modo Python funciona sozinho. Use a API C# se quiser executar a integração com EF Core.
 
 ## Pastas principais
 
@@ -38,11 +38,8 @@ tests/              testes Python e JavaScript
 docs/               guias e imagens fictícias
 ```
 
-## Decisões de escopo ainda abertas
+## Limites
 
-- **Manter a API C#:** ela acrescenta valor de estudo, mas não é necessária para o uso comum. Retirá-la seria uma decisão de portfólio, não uma limpeza técnica automática.
-- **Unificar os históricos:** Python e C# usam formatos e chaves diferentes. Uma unificação exige escolher um formato e criar uma migração para dados existentes.
-- **Manter a explicação local:** ela é independente da pontuação e pode ser removida sem afetar as regras. Continua opcional para demonstrar integração local com um modelo.
-- **Consultar bancos ou reputação de domínios:** isso exigiria serviços externos e mudaria a proposta de privacidade. O projeto atual não faz essas consultas.
+Os históricos Python e C# usam formatos e chaves diferentes. Não há migração automática entre eles.
 
-Essas escolhas devem partir do objetivo do projeto. Nenhuma delas precisa ser decidida para usar ou demonstrar o fluxo principal.
+O aplicativo não consulta bancos nem serviços de reputação de domínios. A IA local apenas resume os alertas; não decide a pontuação nem confirma se um pagamento é seguro.

@@ -15,12 +15,14 @@ Requires Python 3.11 or later on Windows.
 ```powershell
 git clone https://github.com/caio-vasconcellos/confereantes.git
 cd confereantes
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\setup.ps1
-.\scripts\start.ps1
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[ocr]"
+.\.venv\Scripts\python.exe -m confereantes.cli
 ```
 
 Open `http://127.0.0.1:8000` if the browser does not open automatically. This mode already includes the rules, OCR, QR-code reading, local history and optional AI explanations. You do not need .NET to use the app.
+
+If your Python installation does not include `venv`, install `virtualenv` with `python -m pip install virtualenv` and use `python -m virtualenv .venv` for the first line. The `setup.ps1` and `start.ps1` scripts are shortcuts for setup and launch.
 
 ## What it checks
 
@@ -65,7 +67,8 @@ The model receives finding labels, generic recommendations, the level and the sc
 ## Development
 
 ```powershell
-python -m pytest -q
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pytest -q
 node --test tests/frontend.test.cjs
 dotnet test api/ConfereAntes.Api.Tests
 ```

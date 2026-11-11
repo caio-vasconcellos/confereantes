@@ -15,12 +15,14 @@ Requer Python 3.11 ou mais recente no Windows.
 ```powershell
 git clone https://github.com/caio-vasconcellos/confereantes.git
 cd confereantes
-Set-ExecutionPolicy -Scope Process Bypass
-.\scripts\configurar.ps1
-.\scripts\iniciar.ps1
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[ocr]"
+.\.venv\Scripts\python.exe -m confereantes.cli
 ```
 
 Acesse `http://127.0.0.1:8000` se o navegador não abrir sozinho. Esse modo já oferece regras, OCR, leitura de QR Code, histórico local e a explicação opcional por IA. Não é preciso instalar .NET para usar o aplicativo.
+
+Se o Python não incluir `venv`, instale `virtualenv` com `python -m pip install virtualenv` e use `python -m virtualenv .venv` na primeira linha. Os scripts `configurar.ps1` e `iniciar.ps1`, na pasta `scripts`, são atalhos para a instalação e a abertura.
 
 ## O que ele confere
 
@@ -65,7 +67,8 @@ O modelo recebe os nomes dos alertas, recomendações genéricas, nível e pontu
 ## Desenvolvimento
 
 ```powershell
-python -m pytest -q
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pytest -q
 node --test tests/frontend.test.cjs
 dotnet test api/ConfereAntes.Api.Tests
 ```

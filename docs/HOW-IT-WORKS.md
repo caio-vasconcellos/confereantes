@@ -26,7 +26,7 @@ Browser → FastAPI → C# API → Python rules
 
 The C# API demonstrates service communication, validation and EF Core persistence. It does not contain a second risk engine. Requests use loopback addresses and a token created by the launcher.
 
-This integration remains useful as a working C# and EF Core example, but it is no longer presented as a requirement or as a “more complete” edition of the app.
+The Python mode works on its own. Use the C# API to run the EF Core integration.
 
 ## Main directories
 
@@ -38,11 +38,8 @@ tests/              Python and JavaScript tests
 docs/               guides and fictional screenshots
 ```
 
-## Open scope choices
+## Limits
 
-- **Keep the C# API:** it adds learning value but is not needed for ordinary use. Removing it is a portfolio decision, not automatic cleanup.
-- **Merge the histories:** Python and C# use different formats and keys. Merging them requires a chosen format and a migration for existing data.
-- **Keep local explanations:** they are independent of the score and can be removed without changing the rules. They remain optional to demonstrate local-model integration.
-- **Query banks or domain-reputation services:** this would require external services and change the privacy model. The current project makes no such requests.
+The Python and C# histories use different formats and keys. There is no automatic migration between them.
 
-These choices should follow the project's goal. None is required to use or demonstrate the main flow.
+The app does not query banks or domain-reputation services. The local model only summarizes findings; it does not set the score or confirm that a payment is safe.
